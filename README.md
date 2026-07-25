@@ -1,9 +1,9 @@
 # ezdap-adapters
 
 A registry of ready-made DAP adapter definitions for
-[ezdap.nvim](https://github.com/mbfoss/ezdap.nvim). ezdap.nvim ships only the generic
-`remote` adapter; every debugger-specific adapter is downloaded from here, one file at a
-time, as you need it.
+[ezdap.nvim](https://github.com/mbfoss/ezdap.nvim). 
+
+Each file define configuration profiles for a specific debugger.
 
 ## Requirements
 
