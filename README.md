@@ -3,19 +3,14 @@
 A registry of ready-made DAP adapter definitions for
 [ezdap.nvim](https://github.com/mbfoss/ezdap.nvim).
 
-ezdap.nvim ships only the generic `remote` adapter. Every debugger-specific adapter lives
-here and is downloaded one file at a time, as you need it — no bundled config for
-languages you don't debug, and no upstream release to wait on when a field changes.
-
-Each file is a single self-contained Lua module describing one debugger: how to start it,
-and a set of **profiles** (launch a program, attach to a pid, load a core file, …) whose
-inputs are self-describing, so ezdap.nvim can prompt you for them and validate them.
+Each file is a self-contained Lua module defining the configuration profiles for one
+debugger: how its adapter is started or connected to, and the launch and attach profiles
+it supports. Profile inputs are self-describing, so ezdap.nvim can prompt for them and
+validate them. Adapters are installed individually, as needed.
 
 ## Requirements
 
-- Neovim with [ezdap.nvim](https://github.com/mbfoss/ezdap.nvim) installed and on your
-  runtimepath. Adapter files `require("ezdap.shared")` and `require("ezdap.util.ui_util")`,
-  which the plugin provides.
+- Neovim with [ezdap.nvim](https://github.com/mbfoss/ezdap.nvim) installed.
 - The debugger itself, on `PATH` or installed via [mason.nvim](https://github.com/mason-org/mason.nvim).
   See [Available adapters](#available-adapters) for what each one needs.
 
@@ -29,7 +24,7 @@ curl -o ~/.config/nvim/lua/ezdap-adapters/debugpy.lua \
   https://raw.githubusercontent.com/mbfoss/ezdap-adapters/main/adapters/debugpy.lua
 ```
 
-Restart Neovim (or `:source` the file), then:
+Restart Neovim, then:
 
 ```vim
 " one-off session: adapter, profile, and the profile's inputs as key=value
@@ -43,14 +38,16 @@ Restart Neovim (or `:source` the file), then:
 ```
 
 ezdap.nvim globs `lua/ezdap-adapters/*.lua` across the runtimepath and registers each file
-under its filename — `debugpy.lua` becomes the `debugpy` adapter. Because your copy is on
-your own runtimepath, it always wins: change an adapter's `command`, add a profile, or
-tweak a default by editing the local file. Nothing here auto-updates, so re-run the `curl`
-when you want a newer version.
+under its filename — `debugpy.lua` becomes the `debugpy` adapter. A copy on your own
+runtimepath takes precedence, so an adapter's `command`, profiles, and defaults can be
+customised by editing the local file directly. Installed adapters are not updated
+automatically; re-run the `curl` command to obtain a newer revision.
 
 ## Available adapters
 
-Each row lists the profiles the adapter defines and what has to be installed for it to run.
+ezdap.nvim itself ships only the generic `remote` adapter; every debugger-specific adapter
+is published here. Each row lists the profiles an adapter defines and the software
+required to run it.
 
 | Adapter | Language | Profiles | Needs |
 | --- | --- | --- | --- |
@@ -65,31 +62,35 @@ Each row lists the profiles the adapter defines and what has to be installed for
 | [`bash-debug-adapter`](adapters/bash-debug-adapter.lua) | Bash | `bash_script` | the mason `bash-debug-adapter` package ([bash-debug](https://github.com/rogalmic/vscode-bash-debug)) |
 | [`local-lua-debugger`](adapters/local-lua-debugger.lua) | Lua | `launch_program` `launch_command` | `node`, plus the mason `local-lua-debugger-vscode` package ([local-lua-debugger](https://github.com/tomblind/local-lua-debugger-vscode)) |
 
-Adapters that name a mason package look for it under `stdpath("data")/mason/packages/…`.
-If you install the debugger some other way, point the path in your local copy at it.
+Adapters that reference a mason package resolve it under
+`stdpath("data")/mason/packages/…`. For debuggers installed by other means, adjust the
+path in your local copy accordingly.
 
-Profile names follow a convention across adapters: `launch_*` starts a new process,
-`attach_*` joins a running one, and `core` / `replay` load a post-mortem artifact. Every
-profile's inputs carry a description, so `:Debug new_run_file <adapter>` and the
-`quick_run` completion tell you what each one takes without leaving Neovim.
+Profile names follow a common convention: `launch_*` starts a new process, `attach_*`
+connects to a running one, and `core` / `replay` load a post-mortem artifact. Every input
+carries a description, so `:Debug new_run_file <adapter>` and `quick_run` completion
+document the accepted fields within Neovim.
 
 ## Writing your own
 
 Each file returns a single `ezdap.AdapterDef`:
 
-- **How to reach the debugger** — `command` for a stdio adapter (`"codelldb"`,
-  `{ "gdb", "--interpreter=dap" }`), or `host`/`port` for one you connect to. Adapters
-  that need a server started first (debugpy, delve, js-debug) use `setup` to spawn it,
-  parse the port it announces, and fill in the connection, with `teardown` to stop it.
-- **`profiles`** — a table of launch/attach descriptions. Each profile declares its
+- **The adapter connection** — `command` for a stdio adapter (`"codelldb"`,
+  `{ "gdb", "--interpreter=dap" }`), or `host`/`port` for an adapter that is connected to.
+  Adapters requiring a server to be started first (debugpy, delve, js-debug) implement
+  `setup`, which spawns the debug server process, parses the port it reports, and completes the
+  connection details; `teardown` stops it at the end of the session.
+- **`profiles`** — a table of launch and attach descriptions. Each profile declares its
   `request` (`"launch"` or `"attach"`), an `inputs` table typing and describing every
-  field it accepts, and a `build` function that turns those inputs into the DAP
+  field it accepts, and a `build` function that converts those inputs into the DAP
   configuration body the debugger expects.
 
-The existing files are the intended templates — [`gdb.lua`](adapters/gdb.lua) is the
-smallest complete example, [`debugpy.lua`](adapters/debugpy.lua) shows shared input groups
-and a spawned adapter process. For the full contract, see the `ezdap.AdapterDef` and
-`ezdap.Profile` annotations in `lua/ezdap/adapters/init.lua` in ezdap.nvim.
+The existing files serve as templates: [`gdb.lua`](adapters/gdb.lua) is the smallest
+complete example, and [`debugpy.lua`](adapters/debugpy.lua) demonstrates shared input
+groups alongside a spawned adapter process. For the full contract, refer to the
+`ezdap.AdapterDef` and `ezdap.Profile` annotations in `lua/ezdap/adapters/init.lua` in
+ezdap.nvim.
 
-Contributions of new adapters are welcome — match the shape and comment style of the
-existing files, and link the upstream documentation the field set follows at the top.
+Contributions of new adapters are welcome. Please follow the structure and comment style
+of the existing files, and cite the upstream documentation the field set is based on at
+the top of the file.
