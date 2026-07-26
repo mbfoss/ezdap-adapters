@@ -73,7 +73,7 @@ local _profiles = {
             runtime_executable = { type = "string", description = "runtime to run the script with (default node)" },
             runtime_args       = { type = "table", format = "list", description = "arguments passed to the runtime, before the program" },
             stop_on_entry      = { type = "boolean", description = "break at program entry" },
-            console            = { type = "string", choices = { "internalConsole", "integratedTerminal", "externalTerminal" }, description = "where to run the debuggee" },
+            console            = { type = "string", choices = { "internalConsole", "integratedTerminal" }, description = "where to run the debuggee" },
         }),
         build = function(params, _, inputs)
             _node_build(params, inputs)

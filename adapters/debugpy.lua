@@ -108,7 +108,7 @@ local _launch_inputs = {
     cwd           = { type = "string", format = "cwd", description = "working directory" },
     env           = { type = "table", format = "map", description = "environment variables" },
     python        = { type = "table", format = "list", description = "python executable and interpreter arguments" },
-    console       = { type = "string", choices = { "internalConsole", "integratedTerminal", "externalTerminal" }, description = "where the debuggee's stdio goes" },
+    console       = { type = "string", choices = { "internalConsole", "integratedTerminal" }, description = "where the debuggee's stdio goes" },
     stop_on_entry = { type = "boolean", description = "break at the first line of user code" },
 }
 
