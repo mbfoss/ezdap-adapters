@@ -15,7 +15,7 @@ local _adapter_js = vim.fs.joinpath(
 local _common_inputs = {
     cwd                 = { type = "string", format = "cwd", description = "working directory" },
     env                 = { type = "table", format = "map", description = "environment variables" },
-    communication       = { type = "string", description = "adapter transport: stdio|pipe" },
+    communication       = { type = "string", choices = { "stdio", "pipe" }, description = "adapter transport" },
     script_roots        = { type = "table", format = "list", description = "alternate paths to find Lua scripts in" },
     script_files        = { type = "table", format = "list", description = "globs of scripts to debug (needed for source-mapped breakpoints)" },
     ignore_patterns     = { type = "table", format = "list", description = "Lua patterns matching scripts to skip when stepping" },

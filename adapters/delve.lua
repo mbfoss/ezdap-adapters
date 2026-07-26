@@ -71,7 +71,7 @@ local _any_mode_inputs = {
 local _process_inputs = {
     command  = { type = "string", required = true, description = "command line to debug (package or binary, plus args)" },
     cwd      = { type = "string", format = "cwd", description = "working directory for the debuggee" },
-    backend  = { type = "string", description = "debugger backend: default|native|lldb|rr" },
+    backend  = { type = "string", choices = { "default", "native", "lldb", "rr" }, description = "debugger backend" },
     no_debug = { type = "boolean", description = "run the program without debugging it" },
 }
 
@@ -214,7 +214,7 @@ return {
             request = "attach",
             inputs = {
                 pid     = { type = "integer", description = "process id to attach to" },
-                backend = { type = "string", description = "debugger backend: default|native|lldb|rr" },
+                backend = { type = "string", choices = { "default", "native", "lldb", "rr" }, description = "debugger backend" },
             },
             build = function(params, _, inputs)
                 local pid, err = shared.resolve_pid(inputs.pid)
