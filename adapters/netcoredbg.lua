@@ -18,7 +18,7 @@ return {
             description = "debug a .NET assembly",
             request = "launch",
             inputs = {
-                command               = { type = "string", required = true, description = "assembly or executable to debug, plus its arguments" },
+                command               = { type = "string", format = "command", required = true, description = "assembly or executable to debug, plus its arguments" },
                 cwd                   = { type = "string", format = "cwd", description = "working directory" },
                 env                   = { type = "table", format = "map", description = "environment variables" },
                 stop_at_entry         = { type = "boolean", description = "break at program entry" },

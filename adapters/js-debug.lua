@@ -69,7 +69,7 @@ local _profiles = {
         description = "debug a Node.js/JS/TS file",
         request = "launch",
         inputs = _inputs(_node_inputs, {
-            command            = { type = "string", required = true, description = "script to debug, plus its arguments" },
+            command            = { type = "string", format = "command", required = true, description = "script to debug, plus its arguments" },
             runtime_executable = { type = "string", description = "runtime to run the script with (default node)" },
             runtime_args       = { type = "table", format = "list", description = "arguments passed to the runtime, before the program" },
             stop_on_entry      = { type = "boolean", description = "break at program entry" },

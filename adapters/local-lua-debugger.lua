@@ -60,7 +60,7 @@ local _profiles = {
         description = "debug a Lua script",
         request = "launch",
         inputs = _inputs {
-            command = { type = "string", required = true, description = "script to debug, plus its arguments" },
+            command = { type = "string", format = "command", required = true, description = "script to debug, plus its arguments" },
             lua     = { type = "string", description = "Lua interpreter to run the script with (default lua)" },
         },
         build = function(params, _, inputs)
@@ -82,7 +82,7 @@ local _profiles = {
         description = "debug a custom executable that embeds Lua",
         request = "launch",
         inputs = _inputs {
-            command = { type = "string", required = true, description = "custom command to run, plus its arguments" },
+            command = { type = "string", format = "command", required = true, description = "custom command to run, plus its arguments" },
         },
         build = function(params, _, inputs)
             _common_build(params, inputs)

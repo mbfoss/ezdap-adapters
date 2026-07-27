@@ -138,7 +138,7 @@ return {
             description = "debug a Python file",
             request = "launch",
             inputs = _inputs(vim.tbl_extend("error", vim.deepcopy(_launch_inputs), {
-                command = { type = "string", required = true, description = "command line to debug" },
+                command = { type = "string", format = "command", required = true, description = "command line to debug" },
             })),
             build = function(params, _, inputs)
                 _launch_build(params, inputs)

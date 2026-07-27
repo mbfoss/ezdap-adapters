@@ -12,7 +12,7 @@ return {
             description = "debug a native executable",
             request = "launch",
             inputs = {
-                command       = { type = "string", required = true, description = "command line to debug" },
+                command       = { type = "string", format = "command", required = true, description = "command line to debug" },
                 cwd           = { type = "string", format = "cwd", description = "working directory" },
                 env           = { type = "table", format = "map", description = "environment variables" },
                 stop_on_entry = { type = "boolean", description = "break at program entry" },

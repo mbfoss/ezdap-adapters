@@ -69,7 +69,7 @@ local _any_mode_inputs = {
 ---Fields every mode that runs a process accepts (`exec`, and so `debug`/`test`).
 ---@type table<string, ezdap.Input>
 local _process_inputs = {
-    command  = { type = "string", required = true, description = "command line to debug (package or binary, plus args)" },
+    command  = { type = "string", format = "command", required = true, description = "command line to debug (package or binary, plus args)" },
     cwd      = { type = "string", format = "cwd", description = "working directory for the debuggee" },
     backend  = { type = "string", choices = { "default", "native", "lldb", "rr" }, description = "debugger backend" },
     no_debug = { type = "boolean", description = "run the program without debugging it" },
