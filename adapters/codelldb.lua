@@ -68,7 +68,7 @@ return {
                 env           = { type = "table", format = "map", description = "environment variables, added to the inherited ones" },
                 env_file      = { type = "string", format = "file", description = "file of additional environment variables" },
                 stdio         = { type = "table", format = "list", description = "redirections for stdin, stdout, stderr, in that order" },
-                terminal      = { type = "string", choices = { "console", "integrated" }, description = "where the debuggee's stdio goes" },
+                terminal      = { type = "string", choices = { "console", "integrated", "external" }, description = "where the debuggee's stdio goes" },
                 stop_on_entry = { type = "boolean", description = "break at program entry" },
             },
             build = function(params, _, inputs)

@@ -14,6 +14,7 @@ return {
                 script = { type = "string", format = "file", description = "bash script to debug" },
                 cwd    = { type = "string", format = "cwd", description = "working directory" },
                 env    = { type = "table", format = "map", description = "environment variables" },
+                terminal_kind = { type = "string", choices = { "integrated", "external", "debugConsole" }, description = "where the debuggee's stdio goes (default integrated)" },
             },
             build = function(params, _, inputs)
                 params.type    = "bashdb"
@@ -28,7 +29,7 @@ return {
                 params.pathCat      = "cat"
                 params.pathMkfifo   = "mkfifo"
                 params.pathPkill    = "pkill"
-                params.terminalKind = "integrated"
+                params.terminalKind = inputs.terminal_kind or "integrated"
             end,
         },
     },

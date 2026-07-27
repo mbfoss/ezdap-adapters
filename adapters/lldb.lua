@@ -38,7 +38,7 @@ return {
                 cwd             = { type = "string", format = "cwd", description = "working directory" },
                 env             = { type = "table", format = "map", description = "environment variables" },
                 stop_on_entry   = { type = "boolean", description = "break at program entry" },
-                console         = { type = "string", choices = { "internalConsole", "integratedTerminal" }, description = "where to run" },
+                console         = { type = "string", choices = { "internalConsole", "integratedTerminal", "externalTerminal" }, description = "where to run" },
                 run_in_terminal = { type = "boolean", description = "run the debuggee in a terminal (default true)" },
                 source_path     = { type = "string", format = "dir", description = "source root to remap ./ to" },
                 source_map      = { type = "table", format = "map", description = "source path remappings, from=to" },
