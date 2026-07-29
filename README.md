@@ -54,7 +54,7 @@ required to run it.
 | [`debugpy`](adapters/debugpy.lua) | Python | `launch_program` `launch_module` `launch_code` `attach_process` `remote` `listen` | [debugpy](https://github.com/microsoft/debugpy) importable by a Python on `PATH` (or the mason `debugpy` venv) |
 | [`codelldb`](adapters/codelldb.lua) | C / C++ / Rust | `launch_program` `attach_process` `attach_by_name` `core` `gdb_remote` | [`codelldb`](https://github.com/vadimcn/codelldb) on `PATH` |
 | [`lldb`](adapters/lldb.lua) | C / C++ / Rust | `launch_program` `attach_process` `attach_by_name` `core` `gdb_remote` | `lldb-dap`, LLVM's native DAP adapter |
-| [`gdb`](adapters/gdb.lua) | C / C++ | `launch_program` `attach_process` `remote` `core` | [GDB](https://sourceware.org/gdb/) built with the DAP interface (`gdb --interpreter=dap`) |
+| [`gdb`](adapters/gdb.lua) | C / C++ | `launch_program` `attach_process` `remote` `core` | [GDB](https://sourceware.org/gdb/) 14.1+, for the DAP interface (`gdb --interpreter=dap`); `core` needs newer than 17.2 |
 | [`delve`](adapters/delve.lua) | Go | `launch_program` `launch_test` `launch_exec` `replay` `core` `attach_process` | [`dlv`](https://github.com/go-delve/delve) on `PATH` |
 | [`netcoredbg`](adapters/netcoredbg.lua) | .NET | `launch_program` `attach_process` | [`netcoredbg`](https://github.com/Samsung/netcoredbg) on `PATH` |
 | [`java-debug-server`](adapters/java-debug-server.lua) | Java | `attach_server` | an already-running java-debug server, e.g. started by [nvim-jdtls](https://github.com/mfussenegger/nvim-jdtls) |

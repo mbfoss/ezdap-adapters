@@ -60,16 +60,23 @@ end
 ---@type ezdap.AdapterDef
 return {
     command = { GDB, "--interpreter=dap" },
-    -- Nothing to spawn — gdb speaks DAP over stdio — but a gdb without a `dap`
-    -- interpreter dies on startup with a message the session never surfaces, so the
-    -- version is checked here, where a plain error string reaches the user.
-    setup = function(config, _, callback)
+    -- Nothing to spawn — gdb speaks DAP over stdio — but a gdb that cannot do what
+    -- the run asks of it fails in ways the session never surfaces legibly, so both
+    -- version gates live here, where a plain error string reaches the user. This is
+    -- also the only place that sees the gdb the run actually uses: `config.command`,
+    -- which a user may have pointed at a gdb other than the one on $PATH.
+    setup = function(config, ctx, callback)
         local exe = _gdb_of(config)
         local version, err = _gdb_version(exe)
         if not version then return callback(err) end
         if _cmp(version, DAP_MIN) < 0 then
             return callback(("%s is gdb %s; DAP support needs gdb %s or newer")
                 :format(exe, _fmt(version), _fmt(DAP_MIN)))
+        end
+        -- A raw task names no profile, so it is on its own here: nothing to gate on.
+        if ctx.profile == "core" and _cmp(version, CORE_MIN) <= 0 then
+            return callback(("%s is gdb %s; core files need one newer than %s")
+                :format(exe, _fmt(version), _fmt(CORE_MIN)))
         end
         callback()
     end,
@@ -123,8 +130,8 @@ return {
                 params.program = inputs.program
             end,
         },
-        -- Use the `lldb` or `codelldb` adapter's `core` profile on a gdb too old
-        -- for `coreFile` (see CORE_MIN).
+        -- Gated on CORE_MIN by `setup`; use the `lldb` or `codelldb` adapter's `core`
+        -- profile on an older gdb.
         core = {
             description = "post-mortem debug from a core file (needs gdb newer than 17.2)",
             request    = "attach",
@@ -133,14 +140,6 @@ return {
                 program  = { type = "string", format = "file", description = "executable that produced the core" },
             },
             build = function(params, _, inputs)
-                -- `build` gets no config, so this checks the default `gdb`; a config
-                -- pointing elsewhere is caught by `setup`'s check of its own binary.
-                local version, err = _gdb_version(GDB)
-                if not version then return err end
-                if _cmp(version, CORE_MIN) <= 0 then
-                    return ("core files need a gdb newer than %s (found %s); use the lldb or codelldb adapter's core profile")
-                        :format(_fmt(CORE_MIN), _fmt(version))
-                end
                 params.coreFile = inputs.corefile
                 params.program  = inputs.program
             end,
