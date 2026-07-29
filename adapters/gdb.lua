@@ -55,8 +55,11 @@ return {
                 params.program = inputs.program
             end,
         },
+        -- `coreFile` is a post-17.2 addition to gdb's DAP attach: an older gdb drops
+        -- it and fails the attach with "attach requires either 'pid' or 'target'".
+        -- Use the `lldb` or `codelldb` adapter's `core` profile on such a gdb.
         core = {
-            description = "post-mortem debug from a core file",
+            description = "post-mortem debug from a core file (needs gdb > 17.2)",
             request    = "attach",
             inputs = {
                 corefile = { type = "string", format = "file", required = true, description = "core file to load" },

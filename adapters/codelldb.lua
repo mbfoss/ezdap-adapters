@@ -27,6 +27,14 @@ local _common_inputs = {
     exit_commands          = { type = "table", format = "list", description = "LLDB commands run at the end of the session" },
 }
 
+---A path as an LLDB command argument: `~`/`$VAR` expanded, then quoted so a path
+---with spaces survives LLDB's own word splitting.
+---@param path string
+---@return string
+local function _lldb_path(path)
+    return '"' .. vim.fn.expand(path) .. '"'
+end
+
 ---A profile's own inputs on top of the common set.
 ---@param extra table<string, ezdap.Input>
 ---@return table<string, ezdap.Input>
@@ -115,22 +123,24 @@ return {
             end,
         },
         -- A custom launch drives LLDB by command rather than by `program`, so both
-        -- inputs land inside a command string instead of a field of their own.
+        -- inputs land inside a command string instead of a field of their own. One
+        -- `target create` opens the core: it *is* the target, so there is no process
+        -- to create afterwards — an empty `processCreateCommands` keeps codelldb from
+        -- falling back to `process launch` and running the program for real.
         core = {
             description = "post-mortem debug from a core file (custom launch)",
             request = "launch",
             inputs = _inputs {
-                program  = { type = "string", format = "file", description = "executable that produced the core" },
-                corefile = { type = "string", format = "file", description = "core file to load" },
+                program  = { type = "string", format = "file", description = "executable that produced the core (read from the core when unset)" },
+                corefile = { type = "string", format = "file", required = true, description = "core file to load" },
             },
             build = function(params, _, inputs)
                 _common_build(params, inputs)
-                if inputs.program then
-                    params.targetCreateCommands = { "target create " .. inputs.program }
-                end
-                if inputs.corefile then
-                    params.processCreateCommands = { "target create -c " .. inputs.corefile }
-                end
+                local target = inputs.program and ("target create %s --core %s")
+                    :format(_lldb_path(inputs.program), _lldb_path(inputs.corefile))
+                    or ("target create --core %s"):format(_lldb_path(inputs.corefile))
+                params.targetCreateCommands  = { target }
+                params.processCreateCommands = {}
             end,
         },
         gdb_remote = {
@@ -138,17 +148,18 @@ return {
             request = "launch",
             inputs = _inputs {
                 program = { type = "string", format = "file", description = "executable for symbols" },
-                host    = { type = "string", format = "host", description = "gdbserver host" },
-                port    = { type = "integer", format = "port", description = "gdbserver port" },
+                host    = { type = "string", format = "host", required = true, description = "gdbserver host" },
+                port    = { type = "integer", format = "port", required = true, description = "gdbserver port" },
             },
+            -- `host`/`port` are required for the same reason `core` always writes a
+            -- `processCreateCommands`: without one codelldb runs `process launch` and
+            -- debugs the program locally instead of the remote.
             build = function(params, _, inputs)
                 _common_build(params, inputs)
                 if inputs.program then
-                    params.targetCreateCommands = { "target create " .. inputs.program }
+                    params.targetCreateCommands = { "target create " .. _lldb_path(inputs.program) }
                 end
-                if inputs.host and inputs.port then
-                    params.processCreateCommands = { ("gdb-remote %s:%d"):format(inputs.host, inputs.port) }
-                end
+                params.processCreateCommands = { ("gdb-remote %s:%d"):format(inputs.host, inputs.port) }
             end,
         },
     },
