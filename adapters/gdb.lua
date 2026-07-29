@@ -9,38 +9,68 @@ local GDB = "gdb"
 -- 'target'", so the `core` profile checks the version up front instead.
 local CORE_MIN = { 17, 2 } -- exclusive: 17.2 itself is too old
 
+-- `--interpreter=dap` is gdb 14.1 and newer; an older gdb exits with
+-- "Interpreter `dap' unrecognized" the moment the session starts.
+local DAP_MIN = { 14, 1 } -- inclusive
+
 ---gdb's version as `{major, minor}`, parsed from the tail of `gdb --version`'s
 ---first line ("GNU gdb (GDB) 17.2", "GNU gdb (Ubuntu 12.1-0ubuntu1~22.04) 12.1").
----Cached: a `gdb` on $PATH does not change version mid-session.
----@type integer[]?
-local _version
+---Cached per binary: a gdb does not change version mid-session.
+---@type table<string, integer[]>
+local _versions = {}
+---@param exe string  the gdb binary to ask
 ---@return integer[]? version, string? err
-local function _gdb_version()
-    if _version then return _version end
-    if vim.fn.executable(GDB) == 0 then return nil, GDB .. " not found" end
-    local out = vim.fn.system({ GDB, "--version" })
-    if vim.v.shell_error ~= 0 then return nil, "`gdb --version` failed: " .. vim.trim(out) end
+local function _gdb_version(exe)
+    if _versions[exe] then return _versions[exe] end
+    if vim.fn.executable(exe) == 0 then return nil, exe .. " not found" end
+    local out = vim.fn.system({ exe, "--version" })
+    if vim.v.shell_error ~= 0 then return nil, ("`%s --version` failed: %s"):format(exe, vim.trim(out)) end
     -- The trailing "\n" anchors the match to the *end* of the first line, past any
     -- version-shaped noise in a distro's parenthesised build string; it is appended
     -- in case the output has none of its own.
     local major, minor = (out .. "\n"):match("^[^\n]-(%d+)%.(%d+)[^%s]*%s*\n")
     if not major then return nil, "could not parse gdb version from: " .. vim.trim(vim.split(out, "\n")[1] or "") end
-    _version = { tonumber(major), tonumber(minor) }
-    return _version
+    _versions[exe] = { tonumber(major), tonumber(minor) }
+    return _versions[exe]
+end
+
+---How `a` orders against `b`: negative, zero or positive.
+---@param a integer[]
+---@param b integer[]
+---@return integer
+local function _cmp(a, b)
+    for i = 1, 2 do
+        if a[i] ~= b[i] then return a[i] < b[i] and -1 or 1 end
+    end
+    return 0
 end
 
 ---@param v integer[]
----@param min integer[]
----@return boolean
-local function _newer_than(v, min)
-    if v[1] ~= min[1] then return v[1] > min[1] end
-    return v[2] > min[2]
+---@return string
+local function _fmt(v) return ("%d.%d"):format(v[1], v[2]) end
+
+---The gdb a config runs, which may not be the `gdb` on $PATH this adapter defaults to.
+---@param config ezdap.dap.Config
+---@return string
+local function _gdb_of(config)
+    local cmd = config.command
+    return (type(cmd) == "table" and cmd[1] or cmd --[[@as string]]) or GDB
 end
 
 ---@type ezdap.AdapterDef
 return {
     command = { GDB, "--interpreter=dap" },
-    setup = function (config, ctx, callback)
+    -- Nothing to spawn — gdb speaks DAP over stdio — but a gdb without a `dap`
+    -- interpreter dies on startup with a message the session never surfaces, so the
+    -- version is checked here, where a plain error string reaches the user.
+    setup = function(config, _, callback)
+        local exe = _gdb_of(config)
+        local version, err = _gdb_version(exe)
+        if not version then return callback(err) end
+        if _cmp(version, DAP_MIN) < 0 then
+            return callback(("%s is gdb %s; DAP support needs gdb %s or newer")
+                :format(exe, _fmt(version), _fmt(DAP_MIN)))
+        end
         callback()
     end,
     profiles       = {
@@ -103,11 +133,13 @@ return {
                 program  = { type = "string", format = "file", description = "executable that produced the core" },
             },
             build = function(params, _, inputs)
-                local version, err = _gdb_version()
+                -- `build` gets no config, so this checks the default `gdb`; a config
+                -- pointing elsewhere is caught by `setup`'s check of its own binary.
+                local version, err = _gdb_version(GDB)
                 if not version then return err end
-                if not _newer_than(version, CORE_MIN) then
-                    return ("core files need a gdb newer than %d.%d (found %d.%d); use the lldb or codelldb adapter's core profile")
-                        :format(CORE_MIN[1], CORE_MIN[2], version[1], version[2])
+                if _cmp(version, CORE_MIN) <= 0 then
+                    return ("core files need a gdb newer than %s (found %s); use the lldb or codelldb adapter's core profile")
+                        :format(_fmt(CORE_MIN), _fmt(version))
                 end
                 params.coreFile = inputs.corefile
                 params.program  = inputs.program
