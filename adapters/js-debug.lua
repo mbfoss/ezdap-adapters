@@ -1,9 +1,12 @@
-local shared = require("ezdap.shared")
-
 -- JavaScript / TypeScript — starts js-debug's TCP server, then connects to it.
 -- Fields follow vscode-js-debug's options documentation
 -- (https://github.com/microsoft/vscode-js-debug/blob/main/OPTIONS.md). js-debug
 -- picks the debuggee's console via `console`, not runInTerminal.
+
+local js_debug_server_js = vim.fs.joinpath(
+    vim.fn.stdpath("data"), "mason", "packages",
+    "js-debug-adapter", "js-debug", "src", "dapDebugServer.js"
+)
 
 ---Source-resolution fields every profile accepts, node and browser alike.
 ---@type table<string, ezdap.Input>
@@ -77,7 +80,7 @@ local _profiles = {
         }),
         build = function(params, _, inputs)
             _node_build(params, inputs)
-            params.program, params.args = shared.split_command(inputs.command)
+            params.program, params.args = require("ezdap.shared").split_command(inputs.command)
             params.runtimeExecutable = inputs.runtime_executable
             params.runtimeArgs       = inputs.runtime_args
             params.stopOnEntry       = inputs.stop_on_entry
@@ -95,7 +98,7 @@ local _profiles = {
             continue_on_attach       = { type = "boolean", description = "resume a program waiting on --inspect-brk" },
         }),
         build = function(params, _, inputs)
-            local pid, err = shared.resolve_pid(inputs.pid)
+            local pid, err = require("ezdap.shared").resolve_pid(inputs.pid)
             if not pid then return err end
             _node_build(params, inputs)
             params.processId              = pid
@@ -154,12 +157,9 @@ local _profiles = {
 ---@type ezdap.AdapterDef
 return {
     setup = function(config, ctx, callback)
-        local server_js = vim.fs.joinpath(
-            vim.fn.stdpath("data"), "mason", "packages",
-            "js-debug-adapter", "js-debug", "src", "dapDebugServer.js"
-        )
-        if vim.fn.filereadable(server_js) == 0 then
-            return callback("js-debug-adapter not found at " .. server_js)
+        local shared = require("ezdap.shared")
+        if vim.fn.filereadable(js_debug_server_js) == 0 then
+            return callback("js-debug-adapter not found at " .. js_debug_server_js)
         end
         local resolved_host = nil
         local resolved_port = nil
@@ -170,7 +170,7 @@ return {
             callback(err, state)
         end
         local handle
-        handle = shared.spawn({ "node", server_js }, {
+        handle = shared.spawn({ "node", js_debug_server_js }, {
             bufname = shared.unique_buf_name("ezdap://" .. (config.name or config.adapter or "debug") .. "_js-debug-server"),
             on_stdout = function(_, data)
                 if resolved_port then return end

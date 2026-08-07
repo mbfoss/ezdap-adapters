@@ -1,33 +1,50 @@
 -- lldb-dap — LLVM's native DAP adapter. The launch/attach parameters mirror the
--- LLDB docs (https://lldb.llvm.org/use/lldbdap.html). `type` is always
--- "lldb-dap" and `name` is a required display label. Attaching by process name
--- (rather than pid) is done by supplying `program` and omitting `pid`.
---
--- Beyond the fields exposed as inputs below, lldb-dap accepts many optional
--- keys — add them to a run file directly:
---   * common (launch & attach): preRunCommands, stopCommands, exitCommands,
---     terminateCommands, debuggerRoot, commandEscapePrefix, customFrameFormat,
---     customThreadFormat, displayExtendedBacktrace,
---     enableAutoVariableSummaries, enableSyntheticChildDebugging.
---   * launch: stdio, launchCommands.
---   * attach: attachCommands.
---
--- `runInTerminal` is the launch default here (a debuggee that reads stdin works
--- out of the box); set it false for a debuggee whose output belongs in the
--- debug console. Newer lldb-dap spells the same choice as `console`, which
--- wins when both are set.
--- An attach must specify exactly one target: pid, program, coreFile,
--- attachCommands, or gdb-remote-port.
---
--- lldb-dap's `gdb-remote-*` are plain body fields (this stdio adapter is not
--- task-level TCP), so the gdb_remote configuration has no `connect`.
+-- LLDB docs (https://lldb.llvm.org/use/lldbdap.html).
 
-local shared = require("ezdap.shared")
+-- Set to an lldb-dap path to skip detection entirely; otherwise the config's
+-- lldb-dap is tried first, then the candidates below.
+local lldb_dap_bin = nil ---@type string?
+
+-- Where to look for lldb-dap, in order. A leading "$" names an environment
+-- variable, skipped when unset; "~" expands to the home directory. A bare name
+-- (no separator) is looked up on $PATH, which is where a versioned LLVM install
+-- is picked up from: add "lldb-dap-21", or the full path to its bin directory.
+local lldb_dap_bins = {
+    "lldb-dap",
+    "/usr/local/bin/lldb-dap",
+    "/usr/bin/lldb-dap",
+}
+
+-- Xcode's two toolchains, added only on the platform they can exist on.
+if vim.fn.has("mac") == 1 then
+    vim.list_extend(lldb_dap_bins, {
+        "/Library/Developer/CommandLineTools/usr/bin/lldb-dap",
+        "/Applications/Xcode.app/Contents/Developer/usr/bin/lldb-dap",
+    })
+end
 
 ---@type ezdap.AdapterDef
 return {
-    command = "lldb-dap",
-    profiles       = {
+    command  = lldb_dap_bin or lldb_dap_bins[1],
+    -- Nothing to spawn — lldb-dap speaks DAP over stdio — but a missing binary
+    -- fails the session with no legible reason, so the lookup happens here, where
+    -- a plain error string reaches the user, and the config is pointed at what it
+    -- finds.
+    setup    = function(config, _, callback)
+        local shared = require("ezdap.shared")
+        local from_config = (type(config.command) == "table" and config.command or { config.command }) --[[@as string[] ]]
+        local candidates = lldb_dap_bin and { lldb_dap_bin } or
+            vim.list_extend({ from_config[1] }, lldb_dap_bins)
+        local exe, tried = shared.resolve_path(candidates, shared.is_executable)
+        if not exe then
+            return callback("lldb-dap not found (install LLVM, or Xcode's command line tools); tried " ..
+                table.concat(tried, ", "))
+        end
+        -- Keep any flags the config carries past the binary.
+        config.command = #from_config > 1 and vim.list_extend({ exe }, vim.list_slice(from_config, 2)) or exe
+        callback()
+    end,
+    profiles = {
         -- One `command` input carries the whole command line; `build` splits it into
         -- `program` (the first word) and `args` (the rest).
         launch_program = {
@@ -45,18 +62,18 @@ return {
                 init_commands   = { type = "table", format = "list", description = "LLDB commands run at debugger startup" },
             },
             build = function(params, _, inputs)
-                params.name    = "lldb"
-                params.type    = "lldb-dap"
-                params.program, params.args = shared.split_command(inputs.command)
-                params.cwd     = inputs.cwd
-                params.env     = inputs.env
-                params.stopOnEntry  = inputs.stop_on_entry
-                params.console      = inputs.console
+                params.name                 = "lldb"
+                params.type                 = "lldb-dap"
+                params.program, params.args = require("ezdap.shared").split_command(inputs.command)
+                params.cwd                  = inputs.cwd
+                params.env                  = inputs.env
+                params.stopOnEntry          = inputs.stop_on_entry
+                params.console              = inputs.console
                 -- Unset means the default, so only an explicit false turns it off.
-                params.runInTerminal = inputs.run_in_terminal ~= false
-                params.sourcePath   = inputs.source_path
-                params.sourceMap    = inputs.source_map
-                params.initCommands = inputs.init_commands
+                params.runInTerminal        = inputs.run_in_terminal ~= false
+                params.sourcePath           = inputs.source_path
+                params.sourceMap            = inputs.source_map
+                params.initCommands         = inputs.init_commands
             end,
         },
         attach_process = {
@@ -69,11 +86,11 @@ return {
                 init_commands = { type = "table", format = "list", description = "LLDB commands run at debugger startup" },
             },
             build = function(params, _, inputs)
-                local pid, err = shared.resolve_pid(inputs.pid)
+                local pid, err = require("ezdap.shared").resolve_pid(inputs.pid)
                 if not pid then return err end
-                params.name = "lldb"
-                params.type = "lldb-dap"
-                params.pid  = pid
+                params.name         = "lldb"
+                params.type         = "lldb-dap"
+                params.pid          = pid
                 params.sourcePath   = inputs.source_path
                 params.sourceMap    = inputs.source_map
                 params.initCommands = inputs.init_commands
@@ -90,10 +107,10 @@ return {
                 init_commands = { type = "table", format = "list", description = "LLDB commands run at debugger startup" },
             },
             build = function(params, _, inputs)
-                params.name    = "lldb"
-                params.type    = "lldb-dap"
-                params.program = inputs.program
-                params.waitFor = inputs.wait_for
+                params.name         = "lldb"
+                params.type         = "lldb-dap"
+                params.program      = inputs.program
+                params.waitFor      = inputs.wait_for
                 params.sourcePath   = inputs.source_path
                 params.sourceMap    = inputs.source_map
                 params.initCommands = inputs.init_commands
@@ -109,10 +126,10 @@ return {
                 source_map  = { type = "table", format = "map", description = "source path remappings, from=to" },
             },
             build = function(params, _, inputs)
-                params.name     = "lldb"
-                params.type     = "lldb-dap"
-                params.program  = inputs.program
-                params.coreFile = inputs.corefile
+                params.name       = "lldb"
+                params.type       = "lldb-dap"
+                params.program    = inputs.program
+                params.coreFile   = inputs.corefile
                 params.sourcePath = inputs.source_path
                 params.sourceMap  = inputs.source_map
             end,
@@ -127,12 +144,12 @@ return {
                 source_map  = { type = "table", format = "map", description = "source path remappings, from=to" },
             },
             build = function(params, _, inputs)
-                params.name = "lldb"
-                params.type = "lldb-dap"
+                params.name               = "lldb"
+                params.type               = "lldb-dap"
                 params["gdb-remote-host"] = inputs.host
                 params["gdb-remote-port"] = inputs.port
-                params.sourcePath = inputs.source_path
-                params.sourceMap  = inputs.source_map
+                params.sourcePath         = inputs.source_path
+                params.sourceMap          = inputs.source_map
             end,
         },
     },

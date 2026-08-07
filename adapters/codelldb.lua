@@ -2,13 +2,8 @@
 -- vadimcn/codelldb's launch.json attributes
 -- (https://github.com/vadimcn/codelldb/blob/master/MANUAL.md). `type` is always
 -- "lldb"; `name` is a display label.
---
--- Beyond the fields exposed as inputs below, codelldb accepts a few more keys —
--- add them to a run file directly: `cargo` (a Cargo build description),
--- `gracefulShutdown`, and the raw `targetCreateCommands`/`processCreateCommands`
--- that the `core` and `gdb_remote` profiles assemble for you.
 
-local shared = require("ezdap.shared")
+local codelldb_bin = "codelldb"
 
 ---Attributes codelldb accepts on both a launch and an attach. Declared once and
 ---merged into every profile, so a field is described in one place.
@@ -31,9 +26,7 @@ local _common_inputs = {
 ---with spaces survives LLDB's own word splitting.
 ---@param path string
 ---@return string
-local function _lldb_path(path)
-    return '"' .. vim.fn.expand(path) .. '"'
-end
+local function _quoted(path) return '"' .. path .. '"' end
 
 ---A profile's own inputs on top of the common set.
 ---@param extra table<string, ezdap.Input>
@@ -63,7 +56,7 @@ end
 
 ---@type ezdap.AdapterDef
 return {
-    command = "codelldb",
+    command = codelldb_bin,
     profiles       = {
         -- One `command` input carries the whole command line; `build` splits it into
         -- `program` (the first word) and `args` (the rest).
@@ -81,7 +74,7 @@ return {
             },
             build = function(params, _, inputs)
                 _common_build(params, inputs)
-                params.program, params.args = shared.split_command(inputs.command)
+                params.program, params.args = require("ezdap.shared").split_command(inputs.command)
                 params.cwd         = inputs.cwd
                 params.env         = inputs.env
                 params.envFile     = inputs.env_file
@@ -99,7 +92,7 @@ return {
                 stop_on_entry = { type = "boolean", description = "break immediately after attaching" },
             },
             build = function(params, _, inputs)
-                local pid, err = shared.resolve_pid(inputs.pid)
+                local pid, err = require("ezdap.shared").resolve_pid(inputs.pid)
                 if not pid then return err end
                 _common_build(params, inputs)
                 params.pid         = pid
@@ -137,8 +130,8 @@ return {
             build = function(params, _, inputs)
                 _common_build(params, inputs)
                 local target = inputs.program and ("target create %s --core %s")
-                    :format(_lldb_path(inputs.program), _lldb_path(inputs.corefile))
-                    or ("target create --core %s"):format(_lldb_path(inputs.corefile))
+                    :format(_quoted(inputs.program), _quoted(inputs.corefile))
+                    or ("target create --core %s"):format(_quoted(inputs.corefile))
                 params.targetCreateCommands  = { target }
                 params.processCreateCommands = {}
             end,
@@ -157,7 +150,7 @@ return {
             build = function(params, _, inputs)
                 _common_build(params, inputs)
                 if inputs.program then
-                    params.targetCreateCommands = { "target create " .. _lldb_path(inputs.program) }
+                    params.targetCreateCommands = { "target create " .. _quoted(inputs.program) }
                 end
                 params.processCreateCommands = { ("gdb-remote %s:%d"):format(inputs.host, inputs.port) }
             end,

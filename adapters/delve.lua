@@ -1,10 +1,36 @@
 -- https://github.com/go-delve/delve/blob/master/Documentation/api/dap/README.md
 
-local shared = require("ezdap.shared")
-
 -- Go — `dlv dap` is a TCP DAP server, not a stdio adapter: it prints
 -- "DAP server listening at: <host>:<port>" and expects a TCP connection, so
 -- `_setup` spawns it, parses that line and points the connection there.
+
+-- Set to a dlv path to skip detection entirely; otherwise the first candidate
+-- below that is executable wins.
+local delve_bin = nil ---@type string?
+
+-- Where to look for dlv, in order. A leading "$" names an environment variable,
+-- skipped when unset; "~" expands to the home directory. A bare name (no
+-- separator) is looked up on $PATH.
+local delve_bins = {
+    "dlv",
+    "$GOBIN/dlv",
+    "$GOPATH/bin/dlv",
+    "~/go/bin/dlv",
+    vim.fs.joinpath(vim.fn.stdpath("data"), "mason", "bin", "dlv"),
+}
+
+-- Subcommand and flags dlv is started with, after the binary.
+local delve_args = { "dap" }
+
+---The configured dlv, or the first candidate that is executable.
+---@param extra? string an additional candidate tried last (e.g. from the config)
+---@return string? dlv, string[] tried
+local function _resolve_dlv(extra)
+    local shared = require("ezdap.shared")
+    if delve_bin then return delve_bin, { delve_bin } end
+    local candidates = vim.list_extend(vim.deepcopy(delve_bins), extra and { extra } or {})
+    return shared.resolve_path(candidates, shared.is_executable)
+end
 
 ---Start `dlv dap`, wait for its "DAP server listening at: host:port" line, and
 ---point the connection at that endpoint (delve speaks DAP over TCP, not stdio).
@@ -12,10 +38,16 @@ local shared = require("ezdap.shared")
 ---@param ctx      ezdap.AdapterSetupCtx
 ---@param callback fun(err?: string, state?: any)
 local function _setup(config, ctx, callback)
-    local cmd  = type(config.command) == "table" and config.command or { config.command or "dlv", "dap" }
-    if vim.fn.executable(cmd[1]) == 0 then
-        return callback(cmd[1] .. " not found (install delve, e.g. via mason)")
+    local shared = require("ezdap.shared")
+    -- A config `command` supplies its own binary and flags; anything it leaves
+    -- out falls back to the candidates and args above.
+    local from_config = (type(config.command) == "table" and config.command or { config.command }) --[[@as string[] ]]
+    local dlv, tried  = _resolve_dlv(type(from_config[1]) == "string" and from_config[1] or nil)
+    if not dlv then
+        return callback("dlv not found (install delve, e.g. via mason); tried " .. table.concat(tried, ", "))
     end
+    local cmd = { dlv }
+    vim.list_extend(cmd, #from_config > 1 and vim.list_slice(from_config, 2) or delve_args)
     local resolved = false
     local called   = false
     local handle
@@ -120,10 +152,10 @@ end
 ---@param inputs table<string, any>
 local function _process_build(params, inputs)
     _any_mode_build(params, inputs)
-    params.program, params.args = shared.split_command(inputs.command)
-    params.cwd     = inputs.cwd
-    params.backend = inputs.backend
-    params.noDebug = inputs.no_debug
+    params.program, params.args = require("ezdap.shared").split_command(inputs.command)
+    params.cwd                  = inputs.cwd
+    params.backend              = inputs.backend
+    params.noDebug              = inputs.no_debug
 end
 
 ---@param params table
@@ -144,10 +176,12 @@ end
 
 ---@type ezdap.AdapterDef
 return {
-    command  = { "dlv", "dap" },
+    -- The literal default; `_setup` re-resolves the binary in case it is not on
+    -- $PATH, and keeps any flags a config appended here.
+    command  = vim.list_extend({ delve_bin or delve_bins[1] }, delve_args),
     setup    = _setup,
     teardown = function(_, ctx) if ctx and ctx.handle then ctx.handle.stop() end end,
-    profiles       = {
+    profiles = {
         -- `build` splits the one `command` input into `program` and `args`.
         launch_program = {
             description = "build and debug a Go package/binary",
@@ -186,7 +220,7 @@ return {
                 trace_dir_path = { type = "string", format = "dir", required = true, description = "rr trace directory to replay" },
             },
             build = function(params, _, inputs)
-                params.mode         = "replay"
+                params.mode = "replay"
                 _any_mode_build(params, inputs)
                 params.program      = inputs.program
                 params.traceDirPath = inputs.trace_dir_path
@@ -200,10 +234,10 @@ return {
                 corefile_path = { type = "string", format = "file", required = true, description = "core dump to load" },
             },
             build = function(params, _, inputs)
-                params.mode          = "core"
+                params.mode = "core"
                 _any_mode_build(params, inputs)
-                params.program       = inputs.program
-                params.corefilePath  = inputs.corefile_path
+                params.program      = inputs.program
+                params.corefilePath = inputs.corefile_path
             end,
         },
         -- Only `dlv dap`-served attach mode is "local" (attach to a process the
@@ -217,7 +251,7 @@ return {
                 backend = { type = "string", choices = { "default", "native", "lldb", "rr" }, description = "debugger backend" },
             },
             build = function(params, _, inputs)
-                local pid, err = shared.resolve_pid(inputs.pid)
+                local pid, err = require("ezdap.shared").resolve_pid(inputs.pid)
                 if not pid then return err end
                 params.mode      = "local"
                 params.processId = pid

@@ -3,12 +3,33 @@
 -- package.json. `program` is a nested table the js-based adapter consumes, and is
 -- a oneOf: a Lua interpreter plus an entry file, or a custom command.
 
-local shared = require("ezdap.shared")
+-- Set to the extension directory to skip detection entirely; otherwise the first
+-- candidate below that holds a debugAdapter.js wins.
+local lua_debugger_dir = nil ---@type string?
 
-local _adapter_js = vim.fs.joinpath(
-    vim.fn.stdpath("data"), "mason", "packages",
-    "local-lua-debugger-vscode", "extension", "extension", "debugAdapter.js"
-)
+-- Where to look for the unpacked extension, in order: the directory holding both
+-- `extension/debugAdapter.js` (the adapter) and `debugger/` (the Lua side the
+-- debuggee requires). A leading "$" names an environment variable, skipped when
+-- unset; "~" expands to the home directory. A VS Code install lives in a
+-- version-suffixed directory, so name that version, or set `lua_debugger_dir`.
+local lua_debugger_dirs = {
+    vim.fs.joinpath(vim.fn.stdpath("data"), "mason", "packages", "local-lua-debugger-vscode", "extension"),
+}
+
+-- The Node.js that runs the adapter; `node_bin` pins one, `node_bins` is searched.
+local node_bin = nil ---@type string?
+local node_bins = { "node", "/usr/local/bin/node", "/usr/bin/node" }
+
+---The js entry point inside an extension directory.
+---@param dir string
+---@return string
+local function _adapter_js(dir) return vim.fs.joinpath(dir, "extension", "debugAdapter.js") end
+
+---LUA_PATH for the debuggee, so its `require("lldebugger")` finds the Lua side.
+---The trailing ";;" keeps the default path in place alongside it.
+---@param dir string
+---@return string
+local function _lua_path(dir) return vim.fs.joinpath(dir, "debugger", "?.lua") .. ";;" end
 
 ---Fields both launch shapes accept, alongside their own `program` variant.
 ---@type table<string, ezdap.Input>
@@ -67,7 +88,7 @@ local _profiles = {
             _common_build(params, inputs)
             -- The script goes inside `program`, not beside it, so the pair is
             -- split off first rather than assigned straight to the body.
-            local file, args = shared.split_command(inputs.command)
+            local file, args = require("ezdap.shared").split_command(inputs.command)
             params.program = {
                 lua           = inputs.lua or vim.fn.exepath("lua"),
                 file          = file,
@@ -86,7 +107,7 @@ local _profiles = {
         },
         build = function(params, _, inputs)
             _common_build(params, inputs)
-            local cmd, args = shared.split_command(inputs.command)
+            local cmd, args = require("ezdap.shared").split_command(inputs.command)
             params.program = {
                 command       = cmd,
                 communication = inputs.communication or "stdio",
@@ -96,14 +117,33 @@ local _profiles = {
     },
 }
 
+local _default_dir = lua_debugger_dir or lua_debugger_dirs[1]
+
 ---@type ezdap.AdapterDef
 return {
-    command  = { "node", _adapter_js },
-    env      = {
-        LUA_PATH = vim.fs.joinpath(
-            vim.fn.stdpath("data"), "mason", "packages",
-            "local-lua-debugger-vscode", "debugger", "?.lua"
-        ) .. ";;",
-    },
+    command  = { node_bin or node_bins[1], _adapter_js(_default_dir) },
+    env      = { LUA_PATH = _lua_path(_default_dir) },
+    -- The extension is a directory of js and Lua rather than a binary on $PATH, so
+    -- both halves are located here — the adapter this node runs, and the LUA_PATH
+    -- the debuggee needs — and a miss is reported as a plain error string.
+    setup = function(config, _, callback)
+        local shared = require("ezdap.shared")
+        local dir, tried = shared.resolve_path(
+            lua_debugger_dir and { lua_debugger_dir } or lua_debugger_dirs,
+            function(cand) return vim.fn.filereadable(_adapter_js(cand)) == 1 end)
+        if not dir then
+            return callback("local-lua-debugger-vscode not found (install it, e.g. via mason); tried " ..
+                table.concat(tried, ", "))
+        end
+        local node, node_tried = shared.resolve_path(
+            node_bin and { node_bin } or node_bins, shared.is_executable)
+        if not node then
+            return callback("node not found; tried " .. table.concat(node_tried, ", "))
+        end
+        config.command = { node, _adapter_js(dir) }
+        -- A fresh table: `config.env` is the def's own `env` above, shared by every run.
+        config.env = vim.tbl_extend("force", config.env or {}, { LUA_PATH = _lua_path(dir) })
+        callback()
+    end,
     profiles = _profiles,
 }

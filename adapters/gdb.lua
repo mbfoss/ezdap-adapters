@@ -1,8 +1,26 @@
 -- https://sourceware.org/gdb/current/onlinedocs/gdb.html/Debugger-Adapter-Protocol.html
 
-local shared = require("ezdap.shared")
+-- Set to a gdb path to skip detection entirely; otherwise the config's gdb is
+-- tried first, then the candidates below, and the first one new enough for DAP
+-- wins.
+local gdb_bin = nil ---@type string?
 
-local GDB = "gdb"
+-- Where to look for gdb, in order. A leading "$" names an environment variable,
+-- skipped when unset; "~" expands to the home directory. A bare name (no
+-- separator) is looked up on $PATH — a good place to add a cross-toolchain gdb
+-- such as "arm-none-eabi-gdb".
+local gdb_bins = {
+    "gdb",
+    "gdb-multiarch",
+    "/usr/local/bin/gdb",
+    "/usr/bin/gdb",
+}
+
+-- Flags gdb is started with, after the binary. `--interpreter=dap` is what makes
+-- it speak DAP at all.
+local gdb_args = { "--interpreter=dap" }
+
+local GDB = gdb_bin or gdb_bins[1]
 
 -- `coreFile` is a post-17.2 addition to gdb's DAP attach: an older gdb drops it
 -- and fails the attach with the unhelpful "attach requires either 'pid' or
@@ -57,22 +75,47 @@ local function _gdb_of(config)
     return (type(cmd) == "table" and cmd[1] or cmd --[[@as string]]) or GDB
 end
 
+---The first gdb that exists and is new enough to speak DAP: `preferred` (the one
+---the config names) before the candidate list, so an explicit choice still wins.
+---Versions are cached, so the accepted one is re-read for free by the caller.
+---@param preferred string
+---@return string? exe, string? err
+local function _resolve_gdb(preferred)
+    local shared = require("ezdap.shared")
+    local candidates = gdb_bin and { gdb_bin } or vim.list_extend({ preferred }, gdb_bins)
+    -- The reason the *first* candidate was turned down, which is the one worth
+    -- reporting: it is the gdb the run asked for.
+    local first_err = nil
+    local exe, tried = shared.resolve_path(candidates, function(cand)
+        local version, err = _gdb_version(cand)
+        if version and _cmp(version, DAP_MIN) >= 0 then return true end
+        first_err = first_err or err or
+            ("%s is gdb %s; DAP support needs gdb %s or newer")
+            :format(cand, _fmt(version --[[@as integer[] ]]), _fmt(DAP_MIN))
+        return false
+    end)
+    if exe then return exe end
+    return nil, ("%s (tried %s)"):format(first_err or "no gdb found", table.concat(tried, ", "))
+end
+
 ---@type ezdap.AdapterDef
 return {
-    command = { GDB, "--interpreter=dap" },
+    command = vim.list_extend({ GDB }, gdb_args),
     -- Nothing to spawn — gdb speaks DAP over stdio — but a gdb that cannot do what
     -- the run asks of it fails in ways the session never surfaces legibly, so both
     -- version gates live here, where a plain error string reaches the user. This is
     -- also the only place that sees the gdb the run actually uses: `config.command`,
     -- which a user may have pointed at a gdb other than the one on $PATH.
     setup = function(config, ctx, callback)
-        local exe = _gdb_of(config)
-        local version, err = _gdb_version(exe)
-        if not version then return callback(err) end
-        if _cmp(version, DAP_MIN) < 0 then
-            return callback(("%s is gdb %s; DAP support needs gdb %s or newer")
-                :format(exe, _fmt(version), _fmt(DAP_MIN)))
-        end
+        local exe, err = _resolve_gdb(_gdb_of(config))
+        if not exe then return callback(err) end
+        local version = _gdb_version(exe) --[[@as integer[] ]]
+        -- Point the session at the gdb that was picked, keeping any flags the
+        -- config carries past the binary.
+        local flags = type(config.command) == "table" and #config.command > 1
+            and vim.list_slice(config.command --[[@as string[] ]], 2)
+            or vim.deepcopy(gdb_args)
+        config.command = vim.list_extend({ exe }, flags)
         -- A raw task names no profile, so it is on its own here: nothing to gate on.
         if ctx.profile == "core" and _cmp(version, CORE_MIN) <= 0 then
             return callback(("%s is gdb %s; core files need one newer than %s")
@@ -95,7 +138,7 @@ return {
                 ada_charset   = { type = "string", description = "Ada source character set" },
             },
             build = function(params, _, inputs)
-                params.program, params.args = shared.split_command(inputs.command)
+                params.program, params.args = require("ezdap.shared").split_command(inputs.command)
                 params.cwd     = inputs.cwd
                 params.env     = vim.tbl_extend("force", vim.fn.environ(), inputs.env or {}) -- gdb does not merge env variables on it's own (unlike lldb)
                 params.stopOnEntry = inputs.stop_on_entry
@@ -111,7 +154,7 @@ return {
                 program = { type = "string", format = "file", description = "local binary for symbols" },
             },
             build = function(params, _, inputs)
-                local pid, err = shared.resolve_pid(inputs.pid)
+                local pid, err = require("ezdap.shared").resolve_pid(inputs.pid)
                 if not pid then return err end
                 params.pid     = pid
                 params.program = inputs.program

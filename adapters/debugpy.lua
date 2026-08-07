@@ -1,6 +1,40 @@
 -- https://github.com/microsoft/debugpy/wiki/Debug-configuration-settings
 
-local shared = require("ezdap.shared")
+-- Set to an interpreter path to skip detection entirely; otherwise the first
+-- candidate below that has debugpy importable wins.
+local debugpy_python = nil ---@type string?
+
+-- Directories searched for a venv-style interpreter (bin/python, or
+-- Scripts/python.exe on Windows), in order. A leading "$" names an environment
+-- variable, skipped when unset; a relative entry resolves against the cwd.
+local debugpy_venv_dirs = {
+    "$VIRTUAL_ENV",
+    "$CONDA_PREFIX",
+    ".venv",
+    "venv",
+    vim.fs.joinpath(vim.fn.stdpath("data"), "mason", "packages", "debugpy", "venv"),
+}
+
+-- Plain interpreters tried once no venv above pans out.
+local debugpy_pythons = { "python3", "python" }
+
+---The interpreter inside a venv-style directory, absolute or cwd-relative.
+---@param dir string
+---@return string
+local function _venv_python(dir)
+    return vim.fn.has("win32") == 1
+        and vim.fs.joinpath(dir, "Scripts", "python.exe")
+        or vim.fs.joinpath(dir, "bin", "python")
+end
+
+---Whether `python` runs and can import the adapter module.
+---@param python string
+---@return boolean
+local function _has_debugpy(python)
+    if python == "" or vim.fn.executable(python) == 0 then return false end
+    vim.fn.system({ python, "-c", "import debugpy.adapter" })
+    return vim.v.shell_error == 0
+end
 
 ---@return integer
 local function _free_port()
@@ -11,26 +45,33 @@ local function _free_port()
     return addr.port
 end
 
-
 ---Spawn the local debugpy adapter on a free port and point the connection at it.
 ---@param config   ezdap.dap.Config
 ---@param ctx      ezdap.AdapterSetupCtx
 ---@param callback fun(err?: string, state?: any)
 local function _debugpy_setup(config, ctx, callback)
-    local function resolve_python()
-        local base = vim.fs.joinpath(vim.fn.stdpath("data"), "mason", "packages", "debugpy", "venv")
-        local path = vim.fn.has("win32") == 1
-            and vim.fs.joinpath(base, "Scripts", "python.exe")
-            or vim.fs.joinpath(base, "bin", "python")
-        if vim.fn.filereadable(path) == 1 then return path end
-        local sys = vim.fn.exepath("python3")
-        local fallback = type(config.command) == "table" and config.command[1] or config.command --[[@as string]]
-        return sys ~= "" and sys or fallback
-    end
-    local python = resolve_python()
-    if vim.fn.executable(python) == 0 then return callback(python .. " not found") end
-    if vim.fn.system(python .. " -c 'import debugpy.adapter'"):match("^Error") then
-        return callback("debugpy is not installed for " .. python)
+    local shared = require("ezdap.shared")
+    local python = debugpy_python
+    if python then
+        if not _has_debugpy(python) then return callback("debugpy is not installed for " .. python) end
+    else
+        -- Venvs first, then bare interpreters, then whatever the config named: the
+        -- first one debugpy actually imports under wins, so no venv is required.
+        local cwd = config.cwd or vim.fn.getcwd()
+        local venv_tried, bare_tried
+        python, venv_tried = shared.resolve_path(debugpy_venv_dirs, _has_debugpy,
+            { cwd = cwd, transform = _venv_python })
+        if not python then
+            local bare = vim.deepcopy(debugpy_pythons)
+            local from_config = type(config.command) == "table" and config.command[1] or config.command
+            if type(from_config) == "string" then table.insert(bare, from_config) end
+            python, bare_tried = shared.resolve_path(bare, _has_debugpy)
+            if not python then
+                local tried = vim.list_extend(venv_tried, bare_tried)
+                return callback("no python with debugpy installed found (tried " ..
+                    table.concat(tried, ", ") .. ")")
+            end
+        end
     end
     local port   = _free_port()
     local called = false
@@ -42,7 +83,8 @@ local function _debugpy_setup(config, ctx, callback)
     local handle = shared.spawn(
         { python, "-m", "debugpy.adapter", "--host", "127.0.0.1", "--port", tostring(port) },
         {
-            bufname = shared.unique_buf_name("ezdap://" .. (config.name or config.adapter or "debug") .. "_debugpy-adapter"),
+            bufname = shared.unique_buf_name("ezdap://" ..
+            (config.name or config.adapter or "debug") .. "_debugpy-adapter"),
             cwd     = config.cwd or vim.fn.getcwd(),
             on_exit = function() done("debugpy adapter exited unexpectedly") end,
         }
@@ -131,7 +173,7 @@ return {
     command  = "python3",
     setup    = _debugpy_setup,
     teardown = function(_, ctx) if ctx then ctx.handle.stop() end end,
-    profiles       = {
+    profiles = {
         -- One `command` input carries the whole command line; `build` splits it into
         -- `program` (the first word) and `args` (the rest).
         launch_program = {
@@ -142,7 +184,7 @@ return {
             })),
             build = function(params, _, inputs)
                 _launch_build(params, inputs)
-                params.program, params.args = shared.split_command(inputs.command)
+                params.program, params.args = require("ezdap.shared").split_command(inputs.command)
             end,
         },
         launch_module = {
@@ -178,7 +220,7 @@ return {
                 pid = { type = "integer", description = "process id to attach to" },
             },
             build = function(params, _, inputs)
-                local pid, err = shared.resolve_pid(inputs.pid)
+                local pid, err = require("ezdap.shared").resolve_pid(inputs.pid)
                 if not pid then return err end
                 _common_build(params, inputs)
                 params.processId = pid
