@@ -13,7 +13,7 @@ local _adapter_js = vim.fs.joinpath(
 ---Fields both launch shapes accept, alongside their own `program` variant.
 ---@type table<string, ezdap.Input>
 local _common_inputs = {
-    cwd                 = { type = "string", format = "cwd", description = "working directory" },
+    cwd                 = { type = "string", format = "dir", description = "working directory" },
     env                 = { type = "table", format = "map", description = "environment variables" },
     communication       = { type = "string", choices = { "stdio", "pipe" }, description = "adapter transport" },
     script_roots        = { type = "table", format = "list", description = "alternate paths to find Lua scripts in" },

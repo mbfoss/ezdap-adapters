@@ -12,7 +12,7 @@ return {
             request = "launch",
             inputs = {
                 script = { type = "string", format = "file", description = "bash script to debug" },
-                cwd    = { type = "string", format = "cwd", description = "working directory" },
+                cwd    = { type = "string", format = "dir", description = "working directory" },
                 env    = { type = "table", format = "map", description = "environment variables" },
                 terminal_kind = { type = "string", choices = { "integrated", "external", "debugConsole" }, description = "where the debuggee's stdio goes (default integrated)" },
             },

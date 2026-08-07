@@ -105,7 +105,7 @@ end
 ---Launch-only attributes shared by the `program`, `module` and `code` profiles.
 ---@type table<string, ezdap.Input>
 local _launch_inputs = {
-    cwd           = { type = "string", format = "cwd", description = "working directory" },
+    cwd           = { type = "string", format = "dir", description = "working directory" },
     env           = { type = "table", format = "map", description = "environment variables" },
     python        = { type = "table", format = "list", description = "python executable and interpreter arguments" },
     console       = { type = "string", choices = { "internalConsole", "integratedTerminal", "externalTerminal" }, description = "where the debuggee's stdio goes" },

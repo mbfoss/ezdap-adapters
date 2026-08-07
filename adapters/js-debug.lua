@@ -19,7 +19,7 @@ local _source_inputs = {
 ---Fields both Node profiles accept on top of the source ones.
 ---@type table<string, ezdap.Input>
 local _node_inputs = {
-    cwd                         = { type = "string", format = "cwd", description = "working directory" },
+    cwd                         = { type = "string", format = "dir", description = "working directory" },
     env                         = { type = "table", format = "map", description = "environment variables" },
     env_file                    = { type = "string", format = "file", description = "file of environment variable definitions" },
     restart                     = { type = "boolean", description = "try to reconnect when the connection is lost" },

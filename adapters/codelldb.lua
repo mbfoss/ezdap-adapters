@@ -72,7 +72,7 @@ return {
             request = "launch",
             inputs = _inputs {
                 command       = { type = "string", format = "command", required = true, description = "command line to debug" },
-                cwd           = { type = "string", format = "cwd", description = "working directory" },
+                cwd           = { type = "string", format = "dir", description = "working directory" },
                 env           = { type = "table", format = "map", description = "environment variables, added to the inherited ones" },
                 env_file      = { type = "string", format = "file", description = "file of additional environment variables" },
                 stdio         = { type = "table", format = "list", description = "redirections for stdin, stdout, stderr, in that order" },
