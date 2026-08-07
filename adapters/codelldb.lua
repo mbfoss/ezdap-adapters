@@ -148,7 +148,7 @@ return {
             request = "launch",
             inputs = _inputs {
                 program = { type = "string", format = "file", description = "executable for symbols" },
-                host    = { type = "string", format = "host", required = true, description = "gdbserver host" },
+                host    = { type = "string", required = true, description = "gdbserver host" },
                 port    = { type = "integer", format = "port", required = true, description = "gdbserver port" },
             },
             -- `host`/`port` are required for the same reason `core` always writes a

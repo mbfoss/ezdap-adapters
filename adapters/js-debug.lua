@@ -108,7 +108,7 @@ local _profiles = {
         description = "attach to a remote Node.js process over host/port",
         request = "attach",
         inputs = _inputs(_node_inputs, {
-            host                     = { type = "string", format = "host", description = "remote Node.js host" },
+            host                     = { type = "string", description = "remote Node.js host" },
             port                     = { type = "integer", format = "port", description = "remote Node.js debug port (default 9229)" },
             local_root               = { type = "string", format = "dir", description = "local directory containing the program" },
             remote_root              = { type = "string", description = "remote directory containing the program" },
