@@ -9,17 +9,17 @@ local codelldb_bin = "codelldb"
 ---merged into every profile, so a field is described in one place.
 ---@type table<string, ezdap.Input>
 local _common_inputs = {
-    source_map             = { type = "table", format = "map", description = "source path remappings, from=to" },
+    source_map             = { type = "map", format = "dir", description = "source path remappings, from=to" },
     relative_path_base     = { type = "string", format = "dir", description = "base directory for relative source paths" },
-    source_languages       = { type = "table", format = "list", description = "source languages in the program, for language-specific features" },
+    source_languages       = { type = "list", description = "source languages in the program, for language-specific features" },
     expressions            = { type = "string", choices = { "simple", "python", "native" }, description = "default expression evaluator" },
     breakpoint_mode        = { type = "string", choices = { "path", "file" }, description = "how source breakpoints resolve" },
     reverse_debugging      = { type = "boolean", description = "enable reverse debugging" },
-    init_commands          = { type = "table", format = "list", description = "LLDB commands run at debugger startup, before the target exists" },
-    pre_run_commands       = { type = "table", format = "list", description = "LLDB commands run just before launching/attaching" },
-    post_run_commands      = { type = "table", format = "list", description = "LLDB commands run just after launching/attaching" },
-    pre_terminate_commands = { type = "table", format = "list", description = "LLDB commands run just before the debuggee is terminated" },
-    exit_commands          = { type = "table", format = "list", description = "LLDB commands run at the end of the session" },
+    init_commands          = { type = "list", description = "LLDB commands run at debugger startup, before the target exists" },
+    pre_run_commands       = { type = "list", description = "LLDB commands run just before launching/attaching" },
+    post_run_commands      = { type = "list", description = "LLDB commands run just after launching/attaching" },
+    pre_terminate_commands = { type = "list", description = "LLDB commands run just before the debuggee is terminated" },
+    exit_commands          = { type = "list", description = "LLDB commands run at the end of the session" },
 }
 
 ---A path as an LLDB command argument: `~`/`$VAR` expanded, then quoted so a path
@@ -66,9 +66,9 @@ return {
             inputs = _inputs {
                 command       = { type = "string", format = "command", required = true, description = "command line to debug" },
                 cwd           = { type = "string", format = "dir", description = "working directory" },
-                env           = { type = "table", format = "map", description = "environment variables, added to the inherited ones" },
+                env           = { type = "map", description = "environment variables, added to the inherited ones" },
                 env_file      = { type = "string", format = "file", description = "file of additional environment variables" },
-                stdio         = { type = "table", format = "list", description = "redirections for stdin, stdout, stderr, in that order" },
+                stdio         = { type = "list", description = "redirections for stdin, stdout, stderr, in that order" },
                 terminal      = { type = "string", choices = { "console", "integrated", "external" }, description = "where the debuggee's stdio goes" },
                 stop_on_entry = { type = "boolean", description = "break at program entry" },
             },

@@ -103,7 +103,7 @@ local _common_inputs = {
     show_return_value = { type = "boolean", description = "show function return values while stepping (default true)" },
     redirect_output   = { type = "boolean", description = "route the debuggee's output to the debug console" },
     sub_process       = { type = "boolean", description = "debug child processes too" },
-    path_mappings     = { type = "table", format = "map", description = "local=remote source path mappings" },
+    path_mappings     = { type = "map", description = "local=remote source path mappings" },
     django            = { type = "boolean", description = "enable Django template debugging" },
     jinja             = { type = "boolean", description = "enable Jinja2 template debugging" },
     pyramid           = { type = "boolean", description = "enable Pyramid application debugging" },
@@ -148,8 +148,8 @@ end
 ---@type table<string, ezdap.Input>
 local _launch_inputs = {
     cwd           = { type = "string", format = "dir", description = "working directory" },
-    env           = { type = "table", format = "map", description = "environment variables" },
-    python        = { type = "table", format = "list", description = "python executable and interpreter arguments" },
+    env           = { type = "map", description = "environment variables" },
+    python        = { type = "list", description = "python executable and interpreter arguments" },
     console       = { type = "string", choices = { "internalConsole", "integratedTerminal", "externalTerminal" }, description = "where the debuggee's stdio goes" },
     stop_on_entry = { type = "boolean", description = "break at the first line of user code" },
 }
@@ -192,7 +192,7 @@ return {
             request = "launch",
             inputs = _inputs(vim.tbl_extend("error", vim.deepcopy(_launch_inputs), {
                 module = { type = "string", required = true, description = "module name to debug" },
-                args   = { type = "table", format = "list", description = "command line arguments passed to the module" },
+                args   = { type = "list", description = "command line arguments passed to the module" },
             })),
             build = function(params, _, inputs)
                 _launch_build(params, inputs)
@@ -205,7 +205,7 @@ return {
             request = "launch",
             inputs = _inputs(vim.tbl_extend("error", vim.deepcopy(_launch_inputs), {
                 code = { type = "string", required = true, description = "Python code to debug" },
-                args = { type = "table", format = "list", description = "command line arguments passed to the code" },
+                args = { type = "list", description = "command line arguments passed to the code" },
             })),
             build = function(params, _, inputs)
                 _launch_build(params, inputs)

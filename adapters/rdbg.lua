@@ -138,9 +138,9 @@ local _common_inputs = {
 ---@type table<string, ezdap.Input>
 local _spawn_inputs = {
     cwd         = { type = "string", format = "dir", description = "working directory" },
-    env         = { type = "table", format = "map", description = "environment variables" },
+    env         = { type = "map", description = "environment variables" },
     use_bundler = { type = "boolean", description = "run under `bundle exec`" },
-    rdbg_args   = { type = "table", format = "list", description = "extra flags for rdbg itself, e.g. --session-name=api" },
+    rdbg_args   = { type = "list", description = "extra flags for rdbg itself, e.g. --session-name=api" },
 }
 
 ---A profile's inputs: the always-accepted set plus whichever groups apply.
@@ -219,7 +219,7 @@ local _profiles = {
             host          = { type = "string", description = "rdbg server host (default 127.0.0.1)" },
             port          = { type = "integer", format = "port", required = true, description = "rdbg server port" },
             local_fs      = { type = "boolean", description = "the debuggee shares this filesystem (default true)" },
-            path_mappings = { type = "table", format = "map", description = "source path mappings, remote=local" },
+            path_mappings = { type = "map", format = "dir", description = "source path mappings, remote=local" },
         },
         build = function(params, _, inputs)
             _common_build(params, inputs)

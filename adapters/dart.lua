@@ -64,8 +64,8 @@ local _tool_of = {
 ---@type table<string, ezdap.Input>
 local _common_inputs = {
     cwd                               = { type = "string", format = "dir", description = "working directory" },
-    env                               = { type = "table", format = "map", description = "environment variables for the launched process" },
-    additional_project_paths          = { type = "table", format = "list", description = "extra paths to treat as the user's own code" },
+    env                               = { type = "map", description = "environment variables for the launched process" },
+    additional_project_paths          = { type = "list", format = "dir", description = "extra paths to treat as the user's own code" },
     debug_sdk_libraries               = { type = "boolean", description = "step into SDK libraries (default true)" },
     debug_external_package_libraries  = { type = "boolean", description = "step into pub package libraries (default true)" },
     show_getters_in_debug_views       = { type = "boolean", description = "list getters alongside fields, evaluated when expanded" },
@@ -79,7 +79,7 @@ local _common_inputs = {
 ---the Flutter attach, which runs the flutter tool to reach the device.
 ---@type table<string, ezdap.Input>
 local _tool_inputs = {
-    tool_args                 = { type = "table", format = "list", description = "arguments for the dart/flutter tool, e.g. -d,chrome or --flavor,dev" },
+    tool_args                 = { type = "list", description = "arguments for the dart/flutter tool, e.g. -d,chrome or --flavor,dev" },
     custom_tool               = { type = "string", format = "file", description = "a compatible tool to run instead of dart/flutter" },
     custom_tool_replaces_args = { type = "integer", description = "arguments to drop from the front of the tool command line when using custom_tool" },
 }
@@ -152,7 +152,7 @@ local _profiles = {
         inputs = _inputs(_tool_inputs, {
             command            = { type = "string", format = "command", required = true, description = "Dart entry point to debug, plus its arguments" },
             no_debug           = { type = "boolean", description = "run the program without debugging it" },
-            vm_additional_args = { type = "table", format = "list", description = "arguments passed straight to the Dart VM, before the tool's own" },
+            vm_additional_args = { type = "list", description = "arguments passed straight to the Dart VM, before the tool's own" },
             vm_service_port    = { type = "integer", format = "port", description = "fixed port for the debuggee's VM Service" },
             console            = { type = "string", choices = { "internalConsole", "terminal", "externalTerminal" }, description = "where the debuggee runs; a terminal is what gives it stdin" },
         }),
@@ -171,7 +171,7 @@ local _profiles = {
         inputs = _inputs(_tool_inputs, {
             command            = { type = "string", format = "command", required = true, description = "test file to debug, plus its arguments" },
             no_debug           = { type = "boolean", description = "run the tests without debugging them" },
-            vm_additional_args = { type = "table", format = "list", description = "arguments passed straight to the Dart VM, before the tool's own" },
+            vm_additional_args = { type = "list", description = "arguments passed straight to the Dart VM, before the tool's own" },
             console            = { type = "string", choices = { "internalConsole", "terminal", "externalTerminal" }, description = "where the tests run; a terminal is what gives them stdin" },
         }),
         build = function(params, _, inputs)

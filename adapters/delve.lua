@@ -94,8 +94,8 @@ end
 ---@type table<string, ezdap.Input>
 local _any_mode_inputs = {
     dlv_cwd         = { type = "string", format = "dir", description = "working directory for the delve server itself" },
-    env             = { type = "table", format = "map", description = "environment variables for the debuggee" },
-    substitute_path = { type = "table", format = "map", description = "source path remappings, from=to" },
+    env             = { type = "map", description = "environment variables for the debuggee" },
+    substitute_path = { type = "map", description = "source path remappings, from=to" },
 }
 
 ---Fields every mode that runs a process accepts (`exec`, and so `debug`/`test`).
@@ -116,7 +116,7 @@ local _build_inputs = {
     stack_trace_depth      = { type = "integer", description = "maximum stack trace depth" },
     show_global_variables  = { type = "boolean", description = "show package-level variables among the scopes" },
     show_registers         = { type = "boolean", description = "show CPU registers among the scopes" },
-    show_pprof_labels      = { type = "table", format = "list", description = "pprof labels to show in goroutine names" },
+    show_pprof_labels      = { type = "list", description = "pprof labels to show in goroutine names" },
     show_raw_strings       = { type = "boolean", description = "show strings without quoting or escaping" },
     hide_system_goroutines = { type = "boolean", description = "hide runtime goroutines from the thread list" },
     goroutine_filters      = { type = "string", description = "filter expression limiting the goroutines listed" },

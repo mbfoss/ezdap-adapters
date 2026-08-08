@@ -17,7 +17,7 @@ return {
                 server_host  = { type = "string", description = "host of the java-debug server (default 127.0.0.1)" },
                 server_port  = { type = "integer", format = "port", required = true, description = "port the java-debug server listens on" },
                 project_name = { type = "string", description = "project name used to resolve sources" },
-                source_paths = { type = "table", format = "list", description = "extra source lookup paths" },
+                source_paths = { type = "list", format = "dir", description = "extra source lookup paths" },
                 timeout      = { type = "integer", description = "attach timeout in milliseconds" },
             },
             build = function(params, connect, inputs)

@@ -58,7 +58,7 @@ return {
             inputs = {
                 command               = { type = "string", format = "command", required = true, description = "assembly or executable to debug, plus its arguments" },
                 cwd                   = { type = "string", format = "dir", description = "working directory" },
-                env                   = { type = "table", format = "map", description = "environment variables" },
+                env                   = { type = "map", description = "environment variables" },
                 stop_at_entry         = { type = "boolean", description = "break at program entry" },
                 just_my_code          = { type = "boolean", description = "debug only user code, skipping framework code (default true)" },
                 enable_step_filtering = { type = "boolean", description = "step over property accessors and operators (default true)" },

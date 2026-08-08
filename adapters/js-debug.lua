@@ -12,10 +12,10 @@ local js_debug_server_js = vim.fs.joinpath(
 ---@type table<string, ezdap.Input>
 local _source_inputs = {
     source_maps                  = { type = "boolean", description = "use source maps when they exist" },
-    source_map_path_overrides    = { type = "table", format = "map", description = "rewrite sourcemap file locations, from=to" },
-    resolve_source_map_locations = { type = "table", format = "list", description = "globs where sourcemaps may be resolved" },
-    out_files                    = { type = "table", format = "list", description = "globs matching generated JavaScript" },
-    skip_files                   = { type = "table", format = "list", description = "globs to skip when stepping" },
+    source_map_path_overrides    = { type = "map", description = "rewrite sourcemap file locations, from=to" },
+    resolve_source_map_locations = { type = "list", description = "globs where sourcemaps may be resolved" },
+    out_files                    = { type = "list", description = "globs matching generated JavaScript" },
+    skip_files                   = { type = "list", description = "globs to skip when stepping" },
     smart_step                   = { type = "boolean", description = "step over generated code with no original source" },
 }
 
@@ -23,7 +23,7 @@ local _source_inputs = {
 ---@type table<string, ezdap.Input>
 local _node_inputs = {
     cwd                         = { type = "string", format = "dir", description = "working directory" },
-    env                         = { type = "table", format = "map", description = "environment variables" },
+    env                         = { type = "map", description = "environment variables" },
     env_file                    = { type = "string", format = "file", description = "file of environment variable definitions" },
     restart                     = { type = "boolean", description = "try to reconnect when the connection is lost" },
     auto_attach_child_processes = { type = "boolean", description = "attach to child processes automatically" },
@@ -74,7 +74,7 @@ local _profiles = {
         inputs = _inputs(_node_inputs, {
             command            = { type = "string", format = "command", required = true, description = "script to debug, plus its arguments" },
             runtime_executable = { type = "string", description = "runtime to run the script with (default node)" },
-            runtime_args       = { type = "table", format = "list", description = "arguments passed to the runtime, before the program" },
+            runtime_args       = { type = "list", description = "arguments passed to the runtime, before the program" },
             stop_on_entry      = { type = "boolean", description = "break at program entry" },
             console            = { type = "string", choices = { "internalConsole", "integratedTerminal", "externalTerminal" }, description = "where to run the debuggee" },
         }),
@@ -136,10 +136,10 @@ local _profiles = {
         inputs = _inputs {
             url                = { type = "string", required = true, description = "url to open and attach to" },
             web_root           = { type = "string", format = "dir", description = "absolute path to the webserver root" },
-            path_mapping       = { type = "table", format = "map", description = "url-to-local-folder mappings, from=to" },
+            path_mapping       = { type = "map", format = "dir", description = "url-to-local-folder mappings, from=to" },
             user_data_dir      = { type = "string", format = "dir", description = "browser profile directory (default: a temp profile)" },
             runtime_executable = { type = "string", description = "'stable', 'canary', or a path to the browser executable" },
-            runtime_args       = { type = "table", format = "list", description = "arguments passed to the browser" },
+            runtime_args       = { type = "list", description = "arguments passed to the browser" },
         },
         build = function(params, _, inputs)
             _source_build(params, inputs)

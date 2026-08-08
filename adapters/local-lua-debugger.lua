@@ -35,11 +35,11 @@ local function _lua_path(dir) return vim.fs.joinpath(dir, "debugger", "?.lua") .
 ---@type table<string, ezdap.Input>
 local _common_inputs = {
     cwd                 = { type = "string", format = "dir", description = "working directory" },
-    env                 = { type = "table", format = "map", description = "environment variables" },
+    env                 = { type = "map", description = "environment variables" },
     communication       = { type = "string", choices = { "stdio", "pipe" }, description = "adapter transport" },
-    script_roots        = { type = "table", format = "list", description = "alternate paths to find Lua scripts in" },
-    script_files        = { type = "table", format = "list", description = "globs of scripts to debug (needed for source-mapped breakpoints)" },
-    ignore_patterns     = { type = "table", format = "list", description = "Lua patterns matching scripts to skip when stepping" },
+    script_roots        = { type = "list", format = "dir", description = "alternate paths to find Lua scripts in" },
+    script_files        = { type = "list", description = "globs of scripts to debug (needed for source-mapped breakpoints)" },
+    ignore_patterns     = { type = "list", description = "Lua patterns matching scripts to skip when stepping" },
     step_unmapped_lines = { type = "boolean", description = "step into Lua when a source-mapped line has no mapping" },
     break_in_coroutines = { type = "boolean", description = "break on errors raised inside coroutines" },
     stop_on_entry       = { type = "boolean", description = "break on the first line after the debug hook is set" },
