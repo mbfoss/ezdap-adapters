@@ -60,6 +60,9 @@ required to run it.
 | [`netcoredbg`](adapters/netcoredbg.lua) | .NET | `launch_program` `attach_process` | [`netcoredbg`](https://github.com/Samsung/netcoredbg) on `PATH` or from mason |
 | [`java-debug-server`](adapters/java-debug-server.lua) | Java | `attach_server` | an already-running java-debug server, e.g. started by [nvim-jdtls](https://github.com/mfussenegger/nvim-jdtls) |
 | [`js-debug`](adapters/js-debug.lua) | JavaScript / TypeScript | `launch_program` `attach_process` `remote` `launch_browser` | `node`, plus the mason `js-debug-adapter` package ([js-debug](https://github.com/microsoft/vscode-js-debug)) |
+| [`php-debug`](adapters/php-debug.lua) | PHP | `listen` `launch_program` | `node`, plus the mason `php-debug-adapter` package ([vscode-php-debug](https://github.com/xdebug/vscode-php-debug)); the PHP being debugged needs [Xdebug](https://xdebug.org/) |
+| [`rdbg`](adapters/rdbg.lua) | Ruby | `launch_program` `launch_command` `remote` | [`rdbg`](https://github.com/ruby/debug), from the `debug` gem — on `PATH`, under `$GEM_HOME/bin`, or from mason |
+| [`dart`](adapters/dart.lua) | Dart / Flutter | `launch_program` `launch_test` `attach_vm_service` `launch_flutter` `launch_flutter_test` `attach_flutter` | the [Dart](https://dart.dev) or [Flutter](https://flutter.dev) SDK on `PATH`, or under `$DART_SDK` / `$FLUTTER_ROOT` — the adapters ship inside it, so there is nothing else to install |
 | [`bash-debug-adapter`](adapters/bash-debug-adapter.lua) | Bash | `bash_script` | `bash-debug-adapter` on `PATH`, plus the bashdb library — from mason, `$BASHDB_HOME`, or `/usr/share/bashdb` ([bash-debug](https://github.com/rogalmic/vscode-bash-debug)) |
 | [`local-lua-debugger`](adapters/local-lua-debugger.lua) | Lua | `launch_program` `launch_command` | `node`, plus the mason `local-lua-debugger-vscode` package ([local-lua-debugger](https://github.com/tomblind/local-lua-debugger-vscode)) |
 
