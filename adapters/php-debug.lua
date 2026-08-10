@@ -29,7 +29,7 @@ local node_bins = { "node", "/usr/local/bin/node", "/usr/bin/node" }
 local _common_inputs = {
     port               = { type = "integer", format = "port", description = "port to listen for Xdebug on (default 9003)" },
     hostname           = { type = "string", description = "address to bind while listening (default :: — every interface)" },
-    path_mappings      = { type = "map", format = "dir", description = "source path mappings, server=local" },
+    path_mappings      = { type = "map", item_format = "dir", description = "source path mappings, server=local" },
     stop_on_entry      = { type = "boolean", description = "break at the first line" },
     ignore             = { type = "list", description = "globs whose errors are ignored (default **/vendor/**/*.php)" },
     ignore_exceptions  = { type = "list", description = "exception class names to ignore" },

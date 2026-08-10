@@ -136,7 +136,7 @@ local _profiles = {
         inputs = _inputs {
             url                = { type = "string", required = true, description = "url to open and attach to" },
             web_root           = { type = "string", format = "dir", description = "absolute path to the webserver root" },
-            path_mapping       = { type = "map", format = "dir", description = "url-to-local-folder mappings, from=to" },
+            path_mapping       = { type = "map", item_format = "dir", description = "url-to-local-folder mappings, from=to" },
             user_data_dir      = { type = "string", format = "dir", description = "browser profile directory (default: a temp profile)" },
             runtime_executable = { type = "string", description = "'stable', 'canary', or a path to the browser executable" },
             runtime_args       = { type = "list", description = "arguments passed to the browser" },

@@ -58,7 +58,7 @@ return {
                 console         = { type = "string", choices = { "internalConsole", "integratedTerminal", "externalTerminal" }, description = "where to run" },
                 run_in_terminal = { type = "boolean", description = "run the debuggee in a terminal (default true)" },
                 source_path     = { type = "string", format = "dir", description = "source root to remap ./ to" },
-                source_map      = { type = "map", format = "dir", description = "source path remappings, from=to" },
+                source_map      = { type = "map", item_format = "dir", description = "source path remappings, from=to" },
                 init_commands   = { type = "list", description = "LLDB commands run at debugger startup" },
             },
             build = function(params, _, inputs)
@@ -82,7 +82,7 @@ return {
             inputs = {
                 pid           = { type = "integer", description = "process id to attach to" },
                 source_path   = { type = "string", format = "dir", description = "source root to remap ./ to" },
-                source_map    = { type = "map", format = "dir", description = "source path remappings, from=to" },
+                source_map    = { type = "map", item_format = "dir", description = "source path remappings, from=to" },
                 init_commands = { type = "list", description = "LLDB commands run at debugger startup" },
             },
             build = function(params, _, inputs)
@@ -103,7 +103,7 @@ return {
                 program       = { type = "string", format = "file", required = true, description = "executable to attach to" },
                 wait_for      = { type = "boolean", description = "wait for the process to launch" },
                 source_path   = { type = "string", format = "dir", description = "source root to remap ./ to" },
-                source_map    = { type = "map", format = "dir", description = "source path remappings, from=to" },
+                source_map    = { type = "map", item_format = "dir", description = "source path remappings, from=to" },
                 init_commands = { type = "list", description = "LLDB commands run at debugger startup" },
             },
             build = function(params, _, inputs)
@@ -123,7 +123,7 @@ return {
                 corefile    = { type = "string", format = "file", required = true, description = "core file to load" },
                 program     = { type = "string", format = "file", description = "executable that produced the core" },
                 source_path = { type = "string", format = "dir", description = "source root to remap ./ to" },
-                source_map  = { type = "map", format = "dir", description = "source path remappings, from=to" },
+                source_map  = { type = "map", item_format = "dir", description = "source path remappings, from=to" },
             },
             build = function(params, _, inputs)
                 params.name       = "lldb"
@@ -141,7 +141,7 @@ return {
                 port        = { type = "integer", format = "port", required = true, description = "gdbserver port" },
                 host        = { type = "string", description = "gdbserver host" },
                 source_path = { type = "string", format = "dir", description = "source root to remap ./ to" },
-                source_map  = { type = "map", format = "dir", description = "source path remappings, from=to" },
+                source_map  = { type = "map", item_format = "dir", description = "source path remappings, from=to" },
             },
             build = function(params, _, inputs)
                 params.name               = "lldb"

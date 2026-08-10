@@ -219,7 +219,7 @@ local _profiles = {
             host          = { type = "string", description = "rdbg server host (default 127.0.0.1)" },
             port          = { type = "integer", format = "port", required = true, description = "rdbg server port" },
             local_fs      = { type = "boolean", description = "the debuggee shares this filesystem (default true)" },
-            path_mappings = { type = "map", format = "dir", description = "source path mappings, remote=local" },
+            path_mappings = { type = "map", item_format = "dir", description = "source path mappings, remote=local" },
         },
         build = function(params, _, inputs)
             _common_build(params, inputs)

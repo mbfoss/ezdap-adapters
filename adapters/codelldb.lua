@@ -9,7 +9,7 @@ local codelldb_bin = "codelldb"
 ---merged into every profile, so a field is described in one place.
 ---@type table<string, ezdap.Input>
 local _common_inputs = {
-    source_map             = { type = "map", format = "dir", description = "source path remappings, from=to" },
+    source_map             = { type = "map", item_format = "dir", description = "source path remappings, from=to" },
     relative_path_base     = { type = "string", format = "dir", description = "base directory for relative source paths" },
     source_languages       = { type = "list", description = "source languages in the program, for language-specific features" },
     expressions            = { type = "string", choices = { "simple", "python", "native" }, description = "default expression evaluator" },

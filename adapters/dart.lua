@@ -65,7 +65,7 @@ local _tool_of = {
 local _common_inputs = {
     cwd                               = { type = "string", format = "dir", description = "working directory" },
     env                               = { type = "map", description = "environment variables for the launched process" },
-    additional_project_paths          = { type = "list", format = "dir", description = "extra paths to treat as the user's own code" },
+    additional_project_paths          = { type = "list", item_format = "dir", description = "extra paths to treat as the user's own code" },
     debug_sdk_libraries               = { type = "boolean", description = "step into SDK libraries (default true)" },
     debug_external_package_libraries  = { type = "boolean", description = "step into pub package libraries (default true)" },
     show_getters_in_debug_views       = { type = "boolean", description = "list getters alongside fields, evaluated when expanded" },
