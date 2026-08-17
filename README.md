@@ -29,14 +29,14 @@ curl -o ~/.config/nvim/lua/ezdap-adapters/debugpy.lua \
 Restart Neovim, then:
 
 ```vim
+" verify the adapter and its debugger are found
+:checkhealth ezdap
+
 " one-off session: adapter, profile, and the profile's inputs as key=value
 :Debug run debugpy launch_program command=./main.py
 
 " or write a reusable run file for the adapter
 :Debug new_run_file debugpy
-
-" verify the adapter and its debugger are found
-:checkhealth ezdap
 ```
 
 ezdap.nvim globs `lua/ezdap-adapters/*.lua` across the runtimepath and registers each file
@@ -77,50 +77,9 @@ Where an adapter has paths to resolve, they are usually variables at the top of 
 
 ## Writing your own
 
-Each file returns one `ezdap.AdapterDef`:
+Adapters are single Lua files returning one `ezdap.AdapterDef` — the field-by-field
+contract, the `setup`/`teardown` lifecycle, the `ezdap.shared` helpers, and which existing
+adapters make the best templates are in
+[Writing your own adapter](WRITING-ADAPTERS.md).
 
-```lua
-return {
-    command  = { "gdb", "--interpreter=dap" }, -- stdio adapter; or host/port to connect
-    setup    = function(config, ctx, callback) end, -- optional, see below
-    profiles = {
-        launch_program = {
-            description = "debug a native executable",
-            request     = "launch", -- or "attach"
-            inputs      = {
-                command = { type = "string", format = "command", required = true, description = "command line to debug" },
-            },
-            build       = function(params, _, inputs) -- inputs -> DAP body
-                params.program, params.args = require("ezdap.shared").split_command(inputs.command)
-            end,
-        },
-    },
-}
-```
-
-`setup` runs before the session. Use it to start a debug server and report its port
-(debugpy, delve, js-debug), or to locate a binary and fail with a readable message. Return
-errors through `callback("...")`. `teardown` stops what `setup` started.
-
-`ezdap.shared` helps: `split_command`, `resolve_pid`, `spawn`, and
-`resolve_path(candidates, accept, opts?)` — which expands `$VAR` and `~` and returns the
-first candidate `accept` approves, plus everything tried:
-
-```lua
-local shared = require("ezdap.shared")
-local exe, tried = shared.resolve_path({ "dlv", "$GOBIN/dlv" }, shared.is_executable)
-```
-
-Use `shared.is_directory` for directories, your own predicate when working means more than
-present (`gdb.lua` checks the version), and `opts.transform` to test a file inside a found
-directory (`debugpy.lua` maps a venv to its `bin/python`).
-
-Templates: [`bash-debug-adapter.lua`](adapters/bash-debug-adapter.lua) is the smallest,
-[`netcoredbg.lua`](adapters/netcoredbg.lua) adds a binary lookup,
-[`debugpy.lua`](adapters/debugpy.lua) shows shared input groups and a spawned server. The
-full contract is in the `ezdap.AdapterDef` and `ezdap.Profile` annotations in
-`lua/ezdap/adapters/init.lua`.
-
-Contributions of new adapters are welcome. Please follow the structure and comment style
-of the existing files, and cite the upstream documentation the field set is based on at
-the top of the file.
+Contributions of new adapters are welcome.
