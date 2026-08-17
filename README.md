@@ -1,12 +1,14 @@
 # ezdap-adapters
 
-A registry of ready-made DAP adapter definitions for
+A registry of ready-made DAP adapters for
 [ezdap.nvim](https://github.com/mbfoss/ezdap.nvim).
 
-Each file is a self-contained Lua module defining the configuration profiles for one
-debugger: how its adapter is started or connected to, and the launch and attach profiles
-it supports. Profile inputs are self-describing, so ezdap.nvim can prompt for them and
-validate them. Adapters are installed individually, as needed.
+Each file is a self-contained *adapter*: a Lua module describing one debugger — how it is
+started or connected to, and the launch and attach profiles it supports. An adapter is
+configuration only. The debugger itself — `codelldb`, `lldb-dap`, `gdb`, `dlv` — is a
+separate program you install, and the adapter says how to find and drive it. Profile
+inputs are self-describing, so ezdap.nvim can prompt for them and validate them. Adapters
+are installed individually, as needed.
 
 ## Requirements
 
@@ -40,9 +42,10 @@ Restart Neovim, then:
 ```
 
 ezdap.nvim globs `lua/ezdap-adapters/*.lua` across the runtimepath and registers each file
-under its filename — `debugpy.lua` becomes the `debugpy` adapter. A copy on your own
-runtimepath takes precedence, so an adapter's `command`, profiles, and defaults can be
-customised by editing the local file directly. Installed adapters are not updated automatically.
+under its filename — `debugpy.lua` becomes the `debugpy` adapter, the name `:Debug run`
+takes. A copy on your own runtimepath takes precedence, so an adapter's `command`,
+profiles, and defaults can be customised by editing the local file directly. Installed
+adapters are not updated automatically.
 
 ## Available adapters
 
@@ -54,7 +57,7 @@ required to run it.
 | --- | --- | --- | --- |
 | [`debugpy`](adapters/debugpy.lua) | Python | `launch_program` `launch_module` `launch_code` `attach_process` `remote` `listen` | any Python that can import [debugpy](https://github.com/microsoft/debugpy) — an active virtualenv, a project `.venv`, the mason `debugpy` venv, or a system `python3` |
 | [`codelldb`](adapters/codelldb.lua) | C / C++ / Rust | `launch_program` `attach_process` `attach_by_name` `core` `gdb_remote` | [`codelldb`](https://github.com/vadimcn/codelldb) on `PATH` |
-| [`lldb`](adapters/lldb.lua) | C / C++ / Rust | `launch_program` `attach_process` `attach_by_name` `core` `gdb_remote` | `lldb-dap`, LLVM's native DAP adapter — on `PATH`, or from Xcode's toolchains on macOS |
+| [`lldb`](adapters/lldb.lua) | C / C++ / Rust | `launch_program` `attach_process` `attach_by_name` `core` `gdb_remote` | `lldb-dap`, LLVM's native DAP interface to LLDB — on `PATH`, or from Xcode's toolchains on macOS |
 | [`gdb`](adapters/gdb.lua) | C / C++ | `launch_program` `attach_process` `remote` | [GDB](https://sourceware.org/gdb/) 14.1+, for the DAP interface (`gdb --interpreter=dap`); |
 | [`delve`](adapters/delve.lua) | Go | `launch_program` `launch_test` `launch_exec` `replay` `core` `attach_process` | [`dlv`](https://github.com/go-delve/delve) on `PATH`, under `$GOBIN` / `$GOPATH/bin` / `~/go/bin`, or from mason |
 | [`netcoredbg`](adapters/netcoredbg.lua) | .NET | `launch_program` `attach_process` | [`netcoredbg`](https://github.com/Samsung/netcoredbg) on `PATH` or from mason |
@@ -62,7 +65,7 @@ required to run it.
 | [`js-debug`](adapters/js-debug.lua) | JavaScript / TypeScript | `launch_program` `attach_process` `remote` `launch_browser` | `node`, plus the mason `js-debug-adapter` package ([js-debug](https://github.com/microsoft/vscode-js-debug)) |
 | [`php-debug`](adapters/php-debug.lua) | PHP | `listen` `launch_program` | `node`, plus the mason `php-debug-adapter` package ([vscode-php-debug](https://github.com/xdebug/vscode-php-debug)); the PHP being debugged needs [Xdebug](https://xdebug.org/) |
 | [`rdbg`](adapters/rdbg.lua) | Ruby | `launch_program` `launch_command` `remote` | [`rdbg`](https://github.com/ruby/debug), from the `debug` gem — on `PATH`, under `$GEM_HOME/bin`, or from mason |
-| [`dart`](adapters/dart.lua) | Dart / Flutter | `launch_program` `launch_test` `attach_vm_service` `launch_flutter` `launch_flutter_test` `attach_flutter` | the [Dart](https://dart.dev) or [Flutter](https://flutter.dev) SDK on `PATH`, or under `$DART_SDK` / `$FLUTTER_ROOT` — the adapters ship inside it, so there is nothing else to install |
+| [`dart`](adapters/dart.lua) | Dart / Flutter | `launch_program` `launch_test` `attach_vm_service` `launch_flutter` `launch_flutter_test` `attach_flutter` | the [Dart](https://dart.dev) or [Flutter](https://flutter.dev) SDK on `PATH`, or under `$DART_SDK` / `$FLUTTER_ROOT` — the debuggers ship inside it, so there is nothing else to install |
 | [`bash-debug-adapter`](adapters/bash-debug-adapter.lua) | Bash | `bash_script` | `bash-debug-adapter` on `PATH`, plus the bashdb library — from mason, `$BASHDB_HOME`, or `/usr/share/bashdb` ([bash-debug](https://github.com/rogalmic/vscode-bash-debug)) |
 | [`local-lua-debugger`](adapters/local-lua-debugger.lua) | Lua | `launch_program` `launch_command` | `node`, plus the mason `local-lua-debugger-vscode` package ([local-lua-debugger](https://github.com/tomblind/local-lua-debugger-vscode)) |
 
@@ -73,13 +76,15 @@ document the accepted fields within Neovim.
 
 ## Locating the debugger
 
-Where an adapter has paths to resolve, they are usually variables at the top of its file. these can be customised if needed.
+Where an adapter has paths to resolve — the debugger executable, and anything that ships
+beside it — they are usually variables at the top of its file. These can be customised if
+needed.
 
 ## Writing your own
 
-Adapters are single Lua files returning one `ezdap.AdapterDef` — the field-by-field
+An adapter is a single Lua file returning one `ezdap.AdapterDef` — the field-by-field
 contract, the `setup`/`teardown` lifecycle, the `ezdap.shared` helpers, and which existing
 adapters make the best templates are in
-[Writing your own adapter](WRITING-ADAPTERS.md).
+[Writing an adapter](WRITING-ADAPTERS.md).
 
 Contributions of new adapters are welcome.
