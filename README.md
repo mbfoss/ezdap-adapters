@@ -84,9 +84,7 @@ needed.
 
 ## Writing your own
 
-An adapter definition is a single Lua file returning one `ezdap.AdapterDef` — the
-field-by-field contract, the `setup`/`teardown` lifecycle, the `ezdap.shared` helpers, and
-which existing definitions make the best templates are in
-[Writing an adapter definition](WRITING-DEFINITIONS.md).
+An adapter definition is a single Lua file returning one `ezdap.AdapterDef`.
+See [Writing an adapter definition](https://github.com/mbfoss/ezdap.nvim/blob/main/WRITING-DEFINITIONS.md).
 
 Contributions of new definitions are welcome.
