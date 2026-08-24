@@ -160,7 +160,7 @@ local function _common_build(params, inputs)
     params.nonstop = not inputs.stop_on_entry
 end
 
----The body and spawn description shared by `launch_program`/`launch_command`,
+---The body and spawn description shared by `script`/`command`,
 ---which differ only in whether rdbg is put in command mode.
 ---@param params  table
 ---@param inputs  table<string, any>
@@ -185,7 +185,7 @@ end
 local _profiles = {
     -- One `command` input carries the whole command line; `build` splits it into
     -- the script rdbg loads and the arguments handed to it.
-    launch_program = {
+    script = {
         description = "debug a Ruby script",
         request = "attach",
         inputs = _inputs(_spawn_inputs, {
@@ -198,7 +198,7 @@ local _profiles = {
     -- The same thing in rdbg's command mode, for the case the script form cannot
     -- express: a program on $PATH rather than a .rb file — `rspec spec/foo_spec.rb`,
     -- `rake test`, `ruby -Itest test/foo_test.rb`.
-    launch_command = {
+    command = {
         description = "debug a Ruby command — rspec, rake, ruby itself",
         request = "attach",
         inputs = _inputs(_spawn_inputs, {
@@ -257,7 +257,7 @@ return {
         if not args or not args[RDBG_KEY] then
             return callback(
                 "rdbg: nothing to connect to — run one of its profiles " ..
-                "(launch_program, launch_command, remote), which say how to reach the debuggee")
+                "(script, command, remote), which say how to reach the debuggee")
         end
         local spec = args[RDBG_KEY]
         args[RDBG_KEY] = nil

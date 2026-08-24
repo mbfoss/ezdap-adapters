@@ -126,7 +126,7 @@ return {
     profiles       = {
         -- One `command` input carries the whole command line; `build` splits it into
         -- GDB's `program` (the first word) and `args` (the rest).
-        launch_program = {
+        binary = {
             description = "debug a native executable",
             request = "launch",
             inputs = {
@@ -146,7 +146,7 @@ return {
                 params.adaSourceCharset = inputs.ada_charset
             end,
         },
-        attach_process = {
+        attach = {
             description = "attach to a running process by pid",
             request    = "attach",
             inputs = {

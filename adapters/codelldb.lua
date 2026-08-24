@@ -60,7 +60,7 @@ return {
     profiles       = {
         -- One `command` input carries the whole command line; `build` splits it into
         -- `program` (the first word) and `args` (the rest).
-        launch_program = {
+        binary = {
             description = "debug an executable",
             request = "launch",
             inputs = _inputs {
@@ -83,7 +83,7 @@ return {
                 params.stopOnEntry = inputs.stop_on_entry
             end,
         },
-        attach_process = {
+        attach = {
             description = "attach to a running process by pid",
             request = "attach",
             inputs = _inputs {
@@ -100,7 +100,7 @@ return {
                 params.stopOnEntry = inputs.stop_on_entry
             end,
         },
-        attach_by_name = {
+        process_name = {
             description = "attach to a process by executable, optionally waiting for it to launch",
             request = "attach",
             inputs = _inputs {

@@ -103,7 +103,7 @@ local _profiles = {
     -- of it — `command` starts at the script, and `runtime_executable` names php.
     -- Xdebug still has to be told to start a session for this run, which is what
     -- `runtime_args` is for; without it the script runs to completion undebugged.
-    launch_program = {
+    script = {
         description = "run a PHP script under Xdebug",
         request = "launch",
         inputs = _inputs {

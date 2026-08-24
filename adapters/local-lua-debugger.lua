@@ -77,7 +77,7 @@ end
 local _profiles = {
     -- One `command` input carries the whole command line; `build` splits it into
     -- the script (`program.file`) and `args` (the rest).
-    launch_program = {
+    script = {
         description = "debug a Lua script",
         request = "launch",
         inputs = _inputs {
@@ -99,7 +99,7 @@ local _profiles = {
     },
     -- The custom-command shape: an executable that embeds Lua drives the session
     -- itself, so there is no interpreter or entry file to name.
-    launch_command = {
+    executable = {
         description = "debug a custom executable that embeds Lua",
         request = "launch",
         inputs = _inputs {

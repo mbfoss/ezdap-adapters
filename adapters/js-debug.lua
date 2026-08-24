@@ -68,7 +68,7 @@ local _profiles = {
     -- One `command` input carries the whole command line; `build` splits it into
     -- `program` (the first word) and `args` (the rest). The runtime is not part of
     -- it — `command` starts at the script, and `runtime_executable` names the runtime.
-    launch_program = {
+    script = {
         description = "debug a Node.js/JS/TS file",
         request = "launch",
         inputs = _inputs(_node_inputs, {
@@ -89,7 +89,7 @@ local _profiles = {
     },
     -- Both attach profiles are the same DAP request; they differ only in whether
     -- the debuggee is named by pid or by address/port.
-    attach_process = {
+    attach = {
         description = "attach to a running process by pid",
         request = "attach",
         inputs = _inputs(_node_inputs, {
@@ -130,7 +130,7 @@ local _profiles = {
     },
     -- The browser target: js-debug serves pwa-chrome from the same server, and
     -- resolves sources through `web_root`/`path_mapping` rather than a cwd.
-    launch_browser = {
+    browser = {
         description = "launch a Chromium browser and debug a page",
         request = "launch",
         inputs = _inputs {

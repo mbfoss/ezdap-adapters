@@ -57,22 +57,24 @@ to run it — the debug adapter, plus the separate debugger beneath it where the
 
 | Adapter | Language | Profiles | Needs |
 | --- | --- | --- | --- |
-| [`debugpy`](adapters/debugpy.lua) | Python | `launch_program` `launch_module` `launch_code` `attach_process` `remote` `listen` | any Python that can import [debugpy](https://github.com/microsoft/debugpy) — an active virtualenv, a project `.venv`, the mason `debugpy` venv, or a system `python3` |
-| [`codelldb`](adapters/codelldb.lua) | C / C++ / Rust | `launch_program` `attach_process` `attach_by_name` `core` `gdb_remote` | [`codelldb`](https://github.com/vadimcn/codelldb) on `PATH` — an adapter over LLDB, which it bundles |
-| [`lldb`](adapters/lldb.lua) | C / C++ / Rust | `launch_program` `attach_process` `attach_by_name` `core` `gdb_remote` | `lldb-dap`, LLVM's own DAP adapter for LLDB — on `PATH`, or from Xcode's toolchains on macOS |
-| [`gdb`](adapters/gdb.lua) | C / C++ | `launch_program` `attach_process` `remote` | [GDB](https://sourceware.org/gdb/) 14.1+ — it is its own adapter (`gdb --interpreter=dap`) |
-| [`delve`](adapters/delve.lua) | Go | `launch_program` `launch_test` `launch_exec` `replay` `core` `attach_process` | [`dlv`](https://github.com/go-delve/delve) on `PATH`, under `$GOBIN` / `$GOPATH/bin` / `~/go/bin`, or from mason — its own adapter (`dlv dap`) |
-| [`netcoredbg`](adapters/netcoredbg.lua) | .NET | `launch_program` `attach_process` | [`netcoredbg`](https://github.com/Samsung/netcoredbg) on `PATH` or from mason |
-| [`java-debug-server`](adapters/java-debug-server.lua) | Java | `attach_server` | an already-running java-debug server, e.g. started by [nvim-jdtls](https://github.com/mfussenegger/nvim-jdtls) |
-| [`js-debug`](adapters/js-debug.lua) | JavaScript / TypeScript | `launch_program` `attach_process` `remote` `launch_browser` | `node`, plus the mason `js-debug-adapter` package ([js-debug](https://github.com/microsoft/vscode-js-debug)) |
-| [`php-debug`](adapters/php-debug.lua) | PHP | `listen` `launch_program` | `node`, plus the mason `php-debug-adapter` package ([vscode-php-debug](https://github.com/xdebug/vscode-php-debug)) — the debugger it fronts is [Xdebug](https://xdebug.org/), loaded into the PHP being debugged |
-| [`rdbg`](adapters/rdbg.lua) | Ruby | `launch_program` `launch_command` `remote` | [`rdbg`](https://github.com/ruby/debug), from the `debug` gem — on `PATH`, under `$GEM_HOME/bin`, or from mason |
-| [`dart`](adapters/dart.lua) | Dart / Flutter | `launch_program` `launch_test` `attach_vm_service` `launch_flutter` `launch_flutter_test` `attach_flutter` | the [Dart](https://dart.dev) or [Flutter](https://flutter.dev) SDK on `PATH`, or under `$DART_SDK` / `$FLUTTER_ROOT` — the adapters ship inside it and front the VM Service, so there is nothing else to install |
-| [`bash-debug-adapter`](adapters/bash-debug-adapter.lua) | Bash | `bash_script` | `bash-debug-adapter` on `PATH` ([bash-debug](https://github.com/rogalmic/vscode-bash-debug)) — the debugger it fronts is bashdb, from mason, `$BASHDB_HOME`, or `/usr/share/bashdb` |
-| [`local-lua-debugger`](adapters/local-lua-debugger.lua) | Lua | `launch_program` `launch_command` | `node`, plus the mason `local-lua-debugger-vscode` package ([local-lua-debugger](https://github.com/tomblind/local-lua-debugger-vscode)) |
+| [`debugpy`](adapters/debugpy.lua) | Python | `script` `module` `code` `attach` `remote` `listen` | any Python that can import [debugpy](https://github.com/microsoft/debugpy) — an active virtualenv, a project `.venv`, the mason `debugpy` venv, or a system `python3` |
+| [`codelldb`](adapters/codelldb.lua) | C / C++ / Rust | `binary` `attach` `process_name` `core` `gdb_remote` | [`codelldb`](https://github.com/vadimcn/codelldb) on `PATH` — an adapter over LLDB, which it bundles |
+| [`lldb`](adapters/lldb.lua) | C / C++ / Rust | `binary` `attach` `process_name` `core` `gdb_remote` | `lldb-dap`, LLVM's own DAP adapter for LLDB — on `PATH`, or from Xcode's toolchains on macOS |
+| [`gdb`](adapters/gdb.lua) | C / C++ | `binary` `attach` `remote` | [GDB](https://sourceware.org/gdb/) 14.1+ — it is its own adapter (`gdb --interpreter=dap`) |
+| [`delve`](adapters/delve.lua) | Go | `package` `test` `binary` `replay` `core` `attach` | [`dlv`](https://github.com/go-delve/delve) on `PATH`, under `$GOBIN` / `$GOPATH/bin` / `~/go/bin`, or from mason — its own adapter (`dlv dap`) |
+| [`netcoredbg`](adapters/netcoredbg.lua) | .NET | `binary` `attach` | [`netcoredbg`](https://github.com/Samsung/netcoredbg) on `PATH` or from mason |
+| [`java-debug-server`](adapters/java-debug-server.lua) | Java | `attach` | an already-running java-debug server, e.g. started by [nvim-jdtls](https://github.com/mfussenegger/nvim-jdtls) |
+| [`js-debug`](adapters/js-debug.lua) | JavaScript / TypeScript | `script` `attach` `remote` `browser` | `node`, plus the mason `js-debug-adapter` package ([js-debug](https://github.com/microsoft/vscode-js-debug)) |
+| [`php-debug`](adapters/php-debug.lua) | PHP | `listen` `script` | `node`, plus the mason `php-debug-adapter` package ([vscode-php-debug](https://github.com/xdebug/vscode-php-debug)) — the debugger it fronts is [Xdebug](https://xdebug.org/), loaded into the PHP being debugged |
+| [`rdbg`](adapters/rdbg.lua) | Ruby | `script` `command` `remote` | [`rdbg`](https://github.com/ruby/debug), from the `debug` gem — on `PATH`, under `$GEM_HOME/bin`, or from mason |
+| [`dart`](adapters/dart.lua) | Dart / Flutter | `script` `test` `attach` `flutter` `flutter_test` `flutter_attach` | the [Dart](https://dart.dev) or [Flutter](https://flutter.dev) SDK on `PATH`, or under `$DART_SDK` / `$FLUTTER_ROOT` — the adapters ship inside it and front the VM Service, so there is nothing else to install |
+| [`bash-debug-adapter`](adapters/bash-debug-adapter.lua) | Bash | `script` | `bash-debug-adapter` on `PATH` ([bash-debug](https://github.com/rogalmic/vscode-bash-debug)) — the debugger it fronts is bashdb, from mason, `$BASHDB_HOME`, or `/usr/share/bashdb` |
+| [`local-lua-debugger`](adapters/local-lua-debugger.lua) | Lua | `script` `executable` | `node`, plus the mason `local-lua-debugger-vscode` package ([local-lua-debugger](https://github.com/tomblind/local-lua-debugger-vscode)) |
 
-Profile names follow a common convention: `launch_*` starts a new process, `attach_*`
-connects to a running one, and `core` / `replay` load a post-mortem artifact. Every input
+Profile names are short and say what they run: `binary`, `script`, `package` and the
+other launch profiles start a new process, `attach` / `process_name` / `remote` /
+`gdb_remote` / `listen` connect to a running one, and `core` / `replay` load a post-mortem
+artifact. Every input
 carries a description, so `:Debug new_run_file <adapter>` and `quick_run` completion
 document the accepted fields within Neovim.
 

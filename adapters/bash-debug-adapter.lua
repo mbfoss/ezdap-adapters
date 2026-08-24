@@ -33,8 +33,8 @@ end
 return {
     command  = bash_tools.bashdb,
     profiles = {
-        -- `quick_run bash-debug-adapter bash_script script=./run.sh`.
-        bash_script = {
+        -- `quick_run bash-debug-adapter script script=./run.sh`.
+        script = {
             description = "debug a bash script",
             request = "launch",
             inputs = {

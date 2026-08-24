@@ -52,7 +52,7 @@ return {
         -- One `command` input carries the whole command line; `build` splits it into
         -- `program` (the first word) and `args` (the rest). A `program` ending in
         -- .dll is run by netcoredbg via `dotnet`; anything else runs as an executable.
-        launch_program = {
+        binary = {
             description = "debug a .NET assembly",
             request = "launch",
             inputs = {
@@ -74,7 +74,7 @@ return {
         },
         -- The attach handler reads `processId` alone — the launch-side options are
         -- not consulted here, so none are offered.
-        attach_process = {
+        attach = {
             description = "attach to a running process by pid",
             request    = "attach",
             inputs = {

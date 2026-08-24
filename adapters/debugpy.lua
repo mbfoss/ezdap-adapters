@@ -144,7 +144,7 @@ local function _common_build(params, inputs)
     end
 end
 
----Launch-only attributes shared by the `program`, `module` and `code` profiles.
+---Launch-only attributes shared by the `script`, `module` and `code` profiles.
 ---@type table<string, ezdap.Input>
 local _launch_inputs = {
     cwd           = { type = "string", format = "dir", description = "working directory" },
@@ -176,7 +176,7 @@ return {
     profiles = {
         -- One `command` input carries the whole command line; `build` splits it into
         -- `program` (the first word) and `args` (the rest).
-        launch_program = {
+        script = {
             description = "debug a Python file",
             request = "launch",
             inputs = _inputs(vim.tbl_extend("error", vim.deepcopy(_launch_inputs), {
@@ -187,7 +187,7 @@ return {
                 params.program, params.args = require("ezdap.shared").split_command(inputs.command)
             end,
         },
-        launch_module = {
+        module = {
             description = "debug a module, as `python -m`",
             request = "launch",
             inputs = _inputs(vim.tbl_extend("error", vim.deepcopy(_launch_inputs), {
@@ -200,7 +200,7 @@ return {
                 params.args   = inputs.args
             end,
         },
-        launch_code = {
+        code = {
             description = "debug a snippet of Python source, as `python -c`",
             request = "launch",
             inputs = _inputs(vim.tbl_extend("error", vim.deepcopy(_launch_inputs), {
@@ -213,7 +213,7 @@ return {
                 params.args = inputs.args
             end,
         },
-        attach_process = {
+        attach = {
             description = "attach to a running process by pid",
             request = "attach",
             inputs = _inputs {

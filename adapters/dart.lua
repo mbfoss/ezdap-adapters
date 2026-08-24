@@ -49,12 +49,12 @@ local dap_subcommand = "debug_adapter"
 ---separate programs, not options on one body.
 ---@type table<string, { flutter?: boolean, test?: boolean }>
 local _tool_of = {
-    launch_program      = {},
-    launch_test         = { test = true },
-    attach_vm_service   = {},
-    launch_flutter      = { flutter = true },
-    launch_flutter_test = { flutter = true, test = true },
-    attach_flutter      = { flutter = true },
+    script         = {},
+    test           = { test = true },
+    attach         = {},
+    flutter        = { flutter = true },
+    flutter_test   = { flutter = true, test = true },
+    flutter_attach = { flutter = true },
 }
 
 ---Fields every profile accepts, launch and attach, Dart and Flutter alike.
@@ -146,7 +146,7 @@ local _profiles = {
     -- `console` is the one field that changes who runs the debuggee: left alone,
     -- the adapter runs it and routes its output to the debug console, which is
     -- also the only mode where it cannot read stdin.
-    launch_program = {
+    script = {
         description = "debug a Dart program",
         request = "launch",
         inputs = _inputs(_tool_inputs, {
@@ -165,7 +165,7 @@ local _profiles = {
     },
     -- The same adapter in test mode (`dart debug_adapter --test`): it runs the
     -- program as a test suite and reports progress and results as it goes.
-    launch_test = {
+    test = {
         description = "debug a Dart test suite",
         request = "launch",
         inputs = _inputs(_tool_inputs, {
@@ -183,7 +183,7 @@ local _profiles = {
     -- Dart names a running debuggee by its VM Service, not by a pid: the uri a
     -- program prints when started with `--observe`/`--enable-vm-service`, or the
     -- file it was told to write that uri to.
-    attach_vm_service = {
+    attach = {
         description = "attach to a running Dart VM Service",
         request = "attach",
         inputs = _inputs(_attach_inputs),
@@ -196,7 +196,7 @@ local _profiles = {
     -- Flutter's own adapter, which drives the flutter tool rather than the VM
     -- directly, so hot reload and hot restart work. The device, build mode and
     -- flavour are flutter's arguments, not the adapter's: they go in `tool_args`.
-    launch_flutter = {
+    flutter = {
         description = "debug a Flutter app on a device",
         request = "launch",
         inputs = _inputs(_tool_inputs, {
@@ -207,7 +207,7 @@ local _profiles = {
             _launch_build(params, inputs)
         end,
     },
-    launch_flutter_test = {
+    flutter_test = {
         description = "debug a Flutter test suite",
         request = "launch",
         inputs = _inputs(_tool_inputs, {
@@ -220,7 +220,7 @@ local _profiles = {
     },
     -- Attaching to a Flutter app already running on a device: the flutter tool
     -- finds it when given neither uri nor file, which is why both are optional.
-    attach_flutter = {
+    flutter_attach = {
         description = "attach to a running Flutter app",
         request = "attach",
         inputs = _inputs(_tool_inputs, _attach_inputs, {
