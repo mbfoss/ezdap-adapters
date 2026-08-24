@@ -8,7 +8,7 @@ local js_debug_server_js = vim.fs.joinpath(
     "js-debug-adapter", "js-debug", "src", "dapDebugServer.js"
 )
 
----Source-resolution fields every profile accepts, node and browser alike.
+---Source-resolution fields every mode accepts, node and browser alike.
 ---@type table<string, ezdap.Input>
 local _source_inputs = {
     source_maps                  = { type = "boolean", description = "use source maps when they exist" },
@@ -19,7 +19,7 @@ local _source_inputs = {
     smart_step                   = { type = "boolean", description = "step over generated code with no original source" },
 }
 
----Fields both Node profiles accept on top of the source ones.
+---Fields both Node modes accept on top of the source ones.
 ---@type table<string, ezdap.Input>
 local _node_inputs = {
     cwd                         = { type = "string", format = "dir", description = "working directory" },
@@ -29,7 +29,7 @@ local _node_inputs = {
     auto_attach_child_processes = { type = "boolean", description = "attach to child processes automatically" },
 }
 
----A profile's inputs: the source-resolution set plus whichever groups apply.
+---A mode's inputs: the source-resolution set plus whichever groups apply.
 ---@param ... table<string, ezdap.Input>
 ---@return table<string, ezdap.Input>
 local function _inputs(...)
@@ -63,8 +63,8 @@ local function _node_build(params, inputs)
     params.autoAttachChildProcesses = inputs.auto_attach_child_processes
 end
 
----@type table<string, ezdap.Profile>
-local _profiles = {
+---@type table<string, ezdap.Mode>
+local _modes = {
     -- One `command` input carries the whole command line; `build` splits it into
     -- `program` (the first word) and `args` (the rest). The runtime is not part of
     -- it — `command` starts at the script, and `runtime_executable` names the runtime.
@@ -87,7 +87,7 @@ local _profiles = {
             params.console           = inputs.console
         end,
     },
-    -- Both attach profiles are the same DAP request; they differ only in whether
+    -- Both attach modes are the same DAP request; they differ only in whether
     -- the debuggee is named by pid or by address/port.
     attach = {
         description = "attach to a running process by pid",
@@ -137,7 +137,7 @@ local _profiles = {
             url                = { type = "string", required = true, description = "url to open and attach to" },
             web_root           = { type = "string", format = "dir", description = "absolute path to the webserver root" },
             path_mapping       = { type = "map", item_format = "dir", description = "url-to-local-folder mappings, from=to" },
-            user_data_dir      = { type = "string", format = "dir", description = "browser profile directory (default: a temp profile)" },
+            user_data_dir      = { type = "string", format = "dir", description = "browser user-data directory (default: a throwaway one)" },
             runtime_executable = { type = "string", description = "'stable', 'canary', or a path to the browser executable" },
             runtime_args       = { type = "list", description = "arguments passed to the browser" },
         },
@@ -209,5 +209,5 @@ return {
         if ctx then ctx.handle.stop() end
     end,
 
-    profiles       = _profiles,
+    modes = _modes,
 }

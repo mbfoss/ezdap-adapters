@@ -32,7 +32,7 @@ end
 ---@type ezdap.AdapterDef
 return {
     command  = bash_tools.bashdb,
-    profiles = {
+    modes = {
         -- `quick_run bash-debug-adapter script script=./run.sh`.
         script = {
             description = "debug a bash script",

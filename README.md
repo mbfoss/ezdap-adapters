@@ -4,12 +4,12 @@ A registry of ready-made DAP adapter definitions for
 [ezdap.nvim](https://github.com/mbfoss/ezdap.nvim).
 
 Each file is a self-contained *adapter definition*: a Lua module describing one debug
-adapter — how it is started or connected to, and the launch and attach profiles it
+adapter — how it is started or connected to, and the launch and attach modes it
 supports. A definition is configuration only. The adapter itself — `codelldb`, `lldb-dap`,
 `gdb --interpreter=dap`, `dlv dap` — is a separate program you install, and the definition
 says how to find and drive it. Some of these adapters front a separate debugger (`codelldb`
 drives LLDB, `php-debug` drives Xdebug); others are the debugger, speaking DAP directly
-(`gdb`, `dlv`, `debugpy`). Profile inputs are self-describing, so ezdap.nvim can prompt for
+(`gdb`, `dlv`, `debugpy`). Mode inputs are self-describing, so ezdap.nvim can prompt for
 them and validate them. Definitions are installed individually, as needed.
 
 ## Requirements
@@ -36,8 +36,8 @@ Restart Neovim, then:
 " verify the definition loads and its adapter is found
 :checkhealth ezdap
 
-" one-off session: adapter, profile, and the profile's inputs as key=value
-:Debug run debugpy launch_program command=./main.py
+" one-off session: adapter, mode, and the mode's inputs as key=value
+:Debug run debugpy script command=./main.py
 
 " or write a reusable run file for it
 :Debug new_run_file debugpy
@@ -46,16 +46,16 @@ Restart Neovim, then:
 ezdap.nvim globs `lua/ezdap-adapters/*.lua` across the runtimepath and registers each file
 under its filename — `debugpy.lua` becomes the `debugpy` adapter, the name `:Debug run`
 takes. A copy on your own runtimepath takes precedence, so a definition's `command`,
-profiles, and defaults can be customised by editing the local file directly. Installed
+modes, and defaults can be customised by editing the local file directly. Installed
 definitions are not updated automatically.
 
 ## Available adapters
 
 ezdap.nvim itself ships only a generic `remote` definition; every language-specific one is
-published here. Each row lists the profiles a definition offers and the software required
-to run it — the debug adapter, plus the separate debugger beneath it where there is one.
+published here. Each row lists the modes a definition offers and the software
+required to run it — the debug adapter, plus the separate debugger beneath it where there is one.
 
-| Adapter | Language | Profiles | Needs |
+| Adapter | Language | Modes | Needs |
 | --- | --- | --- | --- |
 | [`debugpy`](adapters/debugpy.lua) | Python | `script` `module` `code` `attach` `remote` `listen` | any Python that can import [debugpy](https://github.com/microsoft/debugpy) — an active virtualenv, a project `.venv`, the mason `debugpy` venv, or a system `python3` |
 | [`codelldb`](adapters/codelldb.lua) | C / C++ / Rust | `binary` `attach` `process_name` `core` `gdb_remote` | [`codelldb`](https://github.com/vadimcn/codelldb) on `PATH` — an adapter over LLDB, which it bundles |
@@ -71,11 +71,10 @@ to run it — the debug adapter, plus the separate debugger beneath it where the
 | [`bash-debug-adapter`](adapters/bash-debug-adapter.lua) | Bash | `script` | `bash-debug-adapter` on `PATH` ([bash-debug](https://github.com/rogalmic/vscode-bash-debug)) — the debugger it fronts is bashdb, from mason, `$BASHDB_HOME`, or `/usr/share/bashdb` |
 | [`local-lua-debugger`](adapters/local-lua-debugger.lua) | Lua | `script` `executable` | `node`, plus the mason `local-lua-debugger-vscode` package ([local-lua-debugger](https://github.com/tomblind/local-lua-debugger-vscode)) |
 
-Profile names are short and say what they run: `binary`, `script`, `package` and the
-other launch profiles start a new process, `attach` / `process_name` / `remote` /
-`gdb_remote` / `listen` connect to a running one, and `core` / `replay` load a post-mortem
-artifact. Every input
-carries a description, so `:Debug new_run_file <adapter>` and `quick_run` completion
+Mode names are short and say what they run: `binary`, `script`, `package` and the other
+launch modes start a new process, `attach` / `process_name` / `remote` / `gdb_remote` /
+`listen` connect to a running one, and `core` / `replay` load a post-mortem artifact. Every
+input carries a description, so `:Debug new_run_file <adapter>` and `quick_run` completion
 document the accepted fields within Neovim.
 
 ## Locating the adapter

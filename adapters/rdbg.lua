@@ -3,7 +3,7 @@
 -- `rdbg --open --port N` is a TCP DAP server, not a stdio adapter, and it starts
 -- the debuggee itself: the program is already loaded and stopped by the time a
 -- client connects. So the request body names no program — the command line does
--- — and every profile is a DAP `attach`, which is the request the gem reads
+-- — and every mode is a DAP `attach`, which is the request the gem reads
 -- `nonstop` from (a `launch` forces nonstop, and could never stop at entry). The
 -- keys the gem's DAP server actually reads are `localfs`, `localfsMap` and
 -- `nonstop`; see `process_request` in lib/debug/server_dap.rb.
@@ -39,7 +39,7 @@ local function _free_port()
     return addr.port
 end
 
----Where a profile's `build` leaves what `setup` needs — the command line to
+---Where a mode's `build` leaves what `setup` needs — the command line to
 ---start, or the endpoint to dial. Nothing here belongs in the request body: it
 ---describes how the session is *reached*, which is settled before the body is
 ---sent, so `setup` consumes the key and drops it.
@@ -126,7 +126,7 @@ local function _spawn_rdbg(spec, config, ctx, callback)
     end, rdbg_start_timeout_ms)
 end
 
----Fields every profile accepts. `stop_on_entry` is the readable half of the
+---Fields every mode accepts. `stop_on_entry` is the readable half of the
 ---gem's `nonstop`: rdbg has already stopped the program at load by the time we
 ---connect, and `nonstop` says whether to let it go once breakpoints are set.
 ---@type table<string, ezdap.Input>
@@ -134,7 +134,7 @@ local _common_inputs = {
     stop_on_entry = { type = "boolean", description = "stay stopped where rdbg loaded the program, instead of continuing" },
 }
 
----Fields the two spawning profiles share, on top of the common set.
+---Fields the two spawning modes share, on top of the common set.
 ---@type table<string, ezdap.Input>
 local _spawn_inputs = {
     cwd         = { type = "string", format = "dir", description = "working directory" },
@@ -143,7 +143,7 @@ local _spawn_inputs = {
     rdbg_args   = { type = "list", description = "extra flags for rdbg itself, e.g. --session-name=api" },
 }
 
----A profile's inputs: the always-accepted set plus whichever groups apply.
+---A mode's inputs: the always-accepted set plus whichever groups apply.
 ---@param ... table<string, ezdap.Input>
 ---@return table<string, ezdap.Input>
 local function _inputs(...)
@@ -181,8 +181,8 @@ local function _spawn_build(params, inputs, command_mode)
     }
 end
 
----@type table<string, ezdap.Profile>
-local _profiles = {
+---@type table<string, ezdap.Mode>
+local _modes = {
     -- One `command` input carries the whole command line; `build` splits it into
     -- the script rdbg loads and the arguments handed to it.
     script = {
@@ -256,7 +256,7 @@ return {
         local args = config.request_args
         if not args or not args[RDBG_KEY] then
             return callback(
-                "rdbg: nothing to connect to — run one of its profiles " ..
+                "rdbg: nothing to connect to — run one of its modes " ..
                 "(script, command, remote), which say how to reach the debuggee")
         end
         local spec = args[RDBG_KEY]
@@ -269,5 +269,5 @@ return {
         _spawn_rdbg(spec, config, ctx, callback)
     end,
     teardown = function(_, ctx) if ctx and ctx.handle then ctx.handle.stop() end end,
-    profiles = _profiles,
+    modes = _modes,
 }

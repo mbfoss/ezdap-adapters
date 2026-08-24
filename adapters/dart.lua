@@ -2,7 +2,7 @@
 -- is nothing to install beyond the SDK: `dart debug_adapter` and
 -- `flutter debug_adapter`, each with a `--test` variant that runs the project's
 -- tests and reports their progress. Which of the four a run uses is decided by
--- its profile, in `setup`.
+-- its mode, in `setup`.
 --
 -- Fields follow DartCommonLaunchAttachRequestArguments, DartLaunchRequestArguments
 -- and DartAttachRequestArguments in the Dart SDK
@@ -44,8 +44,8 @@ local flutter_bins = {
 -- every SDK old enough to have the command at all understands.
 local dap_subcommand = "debug_adapter"
 
----Which tool each profile's adapter comes from, and whether it is the test
----variant. A profile is the only thing that decides this: the four adapters are
+---Which tool each mode's adapter comes from, and whether it is the test
+---variant. A mode is the only thing that decides this: the four adapters are
 ---separate programs, not options on one body.
 ---@type table<string, { flutter?: boolean, test?: boolean }>
 local _tool_of = {
@@ -57,8 +57,8 @@ local _tool_of = {
     flutter_attach = { flutter = true },
 }
 
----Fields every profile accepts, launch and attach, Dart and Flutter alike.
----Declared once and merged into every profile, so a field is described in one
+---Fields every mode accepts, launch and attach, Dart and Flutter alike.
+---Declared once and merged into every mode, so a field is described in one
 ---place. The `debug_*` pair is what "just my code" is built out of here: SDK and
 ---package libraries are debuggable unless turned off.
 ---@type table<string, ezdap.Input>
@@ -75,7 +75,7 @@ local _common_inputs = {
 }
 
 ---Fields for running the tool itself, rather than the program it runs. Every
----profile whose adapter shells out to `dart`/`flutter` accepts them — including
+---mode whose adapter shells out to `dart`/`flutter` accepts them — including
 ---the Flutter attach, which runs the flutter tool to reach the device.
 ---@type table<string, ezdap.Input>
 local _tool_inputs = {
@@ -84,7 +84,7 @@ local _tool_inputs = {
     custom_tool_replaces_args = { type = "integer", description = "arguments to drop from the front of the tool command line when using custom_tool" },
 }
 
----Fields both attach profiles need: which running VM Service to connect to,
+---Fields both attach modes need: which running VM Service to connect to,
 ---named directly or through the file the tool writes it to.
 ---@type table<string, ezdap.Input>
 local _attach_inputs = {
@@ -92,7 +92,7 @@ local _attach_inputs = {
     vm_service_info_file = { type = "string", format = "file", description = "file to read the VM Service uri from" },
 }
 
----A profile's inputs: the always-accepted set plus whichever groups apply.
+---A mode's inputs: the always-accepted set plus whichever groups apply.
 ---@param ... table<string, ezdap.Input>
 ---@return table<string, ezdap.Input>
 local function _inputs(...)
@@ -141,8 +141,8 @@ local function _launch_build(params, inputs)
     params.noDebug = inputs.no_debug
 end
 
----@type table<string, ezdap.Profile>
-local _profiles = {
+---@type table<string, ezdap.Mode>
+local _modes = {
     -- `console` is the one field that changes who runs the debuggee: left alone,
     -- the adapter runs it and routes its output to the debug console, which is
     -- also the only mode where it cannot read stdin.
@@ -239,14 +239,14 @@ local _profiles = {
 return {
     command = { dart_bin or dart_bins[1], dap_subcommand },
     -- Nothing to spawn — every one of these adapters speaks DAP over stdio — but
-    -- which tool to run is the profile's answer, not the def's, and a missing SDK
+    -- which tool to run is the mode's answer, not the def's, and a missing SDK
     -- fails the session with no legible reason. Both are settled here, where a
     -- plain error string reaches the user.
     setup = function(config, ctx, callback)
         local shared = require("ezdap.shared")
-        -- A raw task names no profile, so it is on its own here: whatever command
+        -- A raw task names no mode, so it is on its own here: whatever command
         -- it carries stands.
-        local spec = ctx.profile and _tool_of[ctx.profile]
+        local spec = ctx.mode and _tool_of[ctx.mode]
         if not spec then return callback() end
         local pinned = spec.flutter and flutter_bin or dart_bin
         local exe, tried = shared.resolve_path(
@@ -263,5 +263,5 @@ return {
         config.command = cmd
         callback()
     end,
-    profiles = _profiles,
+    modes = _modes,
 }

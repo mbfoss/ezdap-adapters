@@ -56,7 +56,7 @@ local function _inputs(...)
     return out
 end
 
----Assigns everything outside `program`, which each profile fills in itself.
+---Assigns everything outside `program`, which each mode fills in itself.
 ---@param params table
 ---@param inputs table<string, any>
 local function _common_build(params, inputs)
@@ -73,8 +73,8 @@ local function _common_build(params, inputs)
     params.verbose           = inputs.verbose
 end
 
----@type table<string, ezdap.Profile>
-local _profiles = {
+---@type table<string, ezdap.Mode>
+local _modes = {
     -- One `command` input carries the whole command line; `build` splits it into
     -- the script (`program.file`) and `args` (the rest).
     script = {
@@ -145,5 +145,5 @@ return {
         config.env = vim.tbl_extend("force", config.env or {}, { LUA_PATH = _lua_path(dir) })
         callback()
     end,
-    profiles = _profiles,
+    modes = _modes,
 }

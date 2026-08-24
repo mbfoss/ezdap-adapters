@@ -2,7 +2,7 @@
 -- Fields follow the `php` configurationAttributes in that extension's
 -- package.json. Upstream declares a `launch` request only, and no `attach`: the
 -- adapter never dials the debuggee, it *listens* for Xdebug to connect back to
--- it, so the bodiless `listen` profile is a launch request too.
+-- it, so the bodiless `listen` mode is a launch request too.
 
 -- Set to the adapter's phpDebug.js to skip detection entirely; otherwise the
 -- first candidate below that is readable wins.
@@ -21,9 +21,9 @@ local php_debug_jss = {
 local node_bin = nil ---@type string?
 local node_bins = { "node", "/usr/local/bin/node", "/usr/bin/node" }
 
----Attributes both profiles accept — everything that configures the DBGP side of
+---Attributes both modes accept — everything that configures the DBGP side of
 ---the session, which is the same whether the debuggee was started here or
----connects on its own. Declared once and merged into every profile, so a field
+---connects on its own. Declared once and merged into every mode, so a field
 ---is described in one place.
 ---@type table<string, ezdap.Input>
 local _common_inputs = {
@@ -45,7 +45,7 @@ local _common_inputs = {
     log                = { type = "boolean", description = "log the DAP/DBGP conversation to the debug console" },
 }
 
----A profile's own inputs on top of the common set.
+---A mode's own inputs on top of the common set.
 ---@param extra table<string, ezdap.Input>
 ---@return table<string, ezdap.Input>
 local function _inputs(extra)
@@ -83,8 +83,8 @@ local function _common_build(params, inputs)
     end
 end
 
----@type table<string, ezdap.Profile>
-local _profiles = {
+---@type table<string, ezdap.Mode>
+local _modes = {
     -- The usual PHP session: nothing is started here, the adapter just holds the
     -- port open and the next request Xdebug is enabled for connects back to it.
     -- Nothing beyond the common inputs applies, since there is no process to
@@ -152,5 +152,5 @@ return {
         config.command = { node, js }
         callback()
     end,
-    profiles = _profiles,
+    modes = _modes,
 }

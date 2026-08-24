@@ -24,7 +24,7 @@ local GDB = gdb_bin or gdb_bins[1]
 
 -- `coreFile` is a post-17.2 addition to gdb's DAP attach: an older gdb drops it
 -- and fails the attach with the unhelpful "attach requires either 'pid' or
--- 'target'", so the `core` profile checks the version up front instead.
+-- 'target'", so the `core` mode checks the version up front instead.
 local CORE_MIN = { 17, 2 } -- exclusive: 17.2 itself is too old
 
 -- `--interpreter=dap` is gdb 14.1 and newer; an older gdb exits with
@@ -116,14 +116,14 @@ return {
             and vim.list_slice(config.command --[[@as string[] ]], 2)
             or vim.deepcopy(gdb_args)
         config.command = vim.list_extend({ exe }, flags)
-        -- A raw task names no profile, so it is on its own here: nothing to gate on.
-        if ctx.profile == "core" and _cmp(version, CORE_MIN) <= 0 then
+        -- A raw task names no mode, so it is on its own here: nothing to gate on.
+        if ctx.mode == "core" and _cmp(version, CORE_MIN) <= 0 then
             return callback(("%s is gdb %s; core files need one newer than %s")
                 :format(exe, _fmt(version), _fmt(CORE_MIN)))
         end
         callback()
     end,
-    profiles       = {
+    modes = {
         -- One `command` input carries the whole command line; `build` splits it into
         -- GDB's `program` (the first word) and `args` (the rest).
         binary = {
@@ -174,7 +174,7 @@ return {
             end,
         },
         -- Gated on CORE_MIN by `setup`; use the `lldb` or `codelldb` adapter's `core`
-        -- profile on an older gdb.
+        -- mode on an older gdb.
         core = {
             description = "post-mortem debug from a core file (needs gdb newer than 17.2)",
             request    = "attach",

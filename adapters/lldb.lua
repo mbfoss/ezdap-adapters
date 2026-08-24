@@ -44,7 +44,7 @@ return {
         config.command = #from_config > 1 and vim.list_extend({ exe }, vim.list_slice(from_config, 2)) or exe
         callback()
     end,
-    profiles = {
+    modes = {
         -- One `command` input carries the whole command line; `build` splits it into
         -- `program` (the first word) and `args` (the rest).
         binary = {

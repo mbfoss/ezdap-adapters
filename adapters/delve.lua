@@ -122,7 +122,7 @@ local _build_inputs = {
     goroutine_filters      = { type = "string", description = "filter expression limiting the goroutines listed" },
 }
 
----A profile's inputs: the always-accepted set plus whichever groups apply.
+---A mode's inputs: the always-accepted set plus whichever groups apply.
 ---@param ... table<string, ezdap.Input>
 ---@return table<string, ezdap.Input>
 local function _inputs(...)
@@ -181,7 +181,7 @@ return {
     command  = vim.list_extend({ delve_bin or delve_bins[1] }, delve_args),
     setup    = _setup,
     teardown = function(_, ctx) if ctx and ctx.handle then ctx.handle.stop() end end,
-    profiles = {
+    modes = {
         -- `build` splits the one `command` input into `program` and `args`.
         package = {
             description = "build and debug a Go package/binary",

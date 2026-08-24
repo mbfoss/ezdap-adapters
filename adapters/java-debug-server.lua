@@ -7,7 +7,7 @@
 return {
     host     = "127.0.0.1",
     port     = 0,
-    profiles = {
+    modes = {
         attach = {
             description = "attach to an external java-debug server (e.g. via nvim-jdtls)",
             request = "attach",
