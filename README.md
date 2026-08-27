@@ -3,14 +3,15 @@
 A Neovim plugin bundling ready-made DAP adapter definitions for
 [ezdap.nvim](https://github.com/mbfoss/ezdap.nvim). Install it and every adapter below is
 registered at once: Python, C/C++/Rust, Go, .NET, Java, JavaScript, PHP, Ruby, Dart, Bash,
-Lua. Nothing is loaded until you debug; a definition is read only when its adapter is used.
+Lua. Nothing is loaded at startup: the definitions are read the first time ezdap.nvim builds
+its adapter registry, which is when you first debug. They are plain tables of configuration,
+so the ones you never use cost a file read and nothing more.
 
 Each adapter is one self-contained *adapter definition*: a Lua file describing one debug
 adapter, how it is started or connected to, and the launch and attach modes it supports. A
 definition is configuration only. The adapter itself (`codelldb`, `lldb-dap`, `gdb`, `dlv`) is
-a separate program you install, and the definition
-says how to find and drive it. Mode inputs are self-describing, so ezdap.nvim can prompt for
-them and validate them.
+a separate program you install, and the definition says how to find and drive it. Mode inputs
+are self-describing, so ezdap.nvim can prompt for them and validate them.
 
 Because the files are self-contained, any one of them also works on its own: copy a single
 definition into your own config and it behaves exactly the same, with or without this
@@ -53,6 +54,9 @@ Restart Neovim, then:
 " verify the definitions load and their adapters are found
 :checkhealth ezdap
 
+" what an adapter takes: its modes, and each mode's inputs
+:Debug adapter_info debugpy
+
 " one-off session: adapter, mode, and the mode's inputs as key=value
 :Debug run debugpy script command=./main.py
 
@@ -83,17 +87,27 @@ are not updated automatically; the ones from the plugin update with it.
 ## Available adapters <!-- tag: adapters -->
 
 ezdap.nvim itself ships only a generic `remote` definition; every language-specific one is
-published here. Each section below covers one definition on its own: the software required to
-run it — the debug adapter, plus the separate debugger beneath it where there is one — and
-every mode it offers with the inputs that mode takes. Where an adapter's modes share inputs,
-those are listed once at the top of its section. Inputs marked `required` must be given; the
-rest are optional, and anything left out is left to the adapter's own default.
+published here. Each section below covers one definition on its own: the software required
+to run it — the debug adapter, plus the separate debugger beneath it where there is one —
+and the modes it offers.
+
+**What each mode takes is not repeated here.** The definitions describe their own inputs, so
+Neovim answers that from the file itself:
+
+```vim
+:Debug adapter_info debugpy         " every mode, with its inputs and their types
+:Debug adapter_info debugpy script  " just that mode
+```
+
+See [`:Debug adapter_info`](https://github.com/mbfoss/ezdap.nvim#debug-adapter_info), help
+tag |ezdap-adapter-info|. The same descriptions reach you while typing: completion after
+`:Debug run <adapter> <mode> ` lists the mode's inputs, and `:Debug new_run_file <adapter>
+<mode>` writes them all out, commented. A definition you copy and edit documents itself the
+same way, which no listing here could.
 
 Mode names are short and say what they run: `binary`, `script`, `package` and the other
 launch modes start a new process, `attach` / `process_name` / `remote` / `gdb_remote` /
-`listen` connect to a running one, and `core` / `replay` load a post-mortem artifact. Every
-input carries its description in the definition itself, so `:Debug new_run_file <adapter>`
-and `quick_run` completion document the same fields within Neovim.
+`listen` connect to a running one, and `core` / `replay` load a post-mortem artifact.
 
 ### `debugpy` (Python) <!-- tag: debugpy -->
 
@@ -102,76 +116,12 @@ import [debugpy](https://github.com/microsoft/debugpy). The definition looks for
 active virtualenv, `$CONDA_PREFIX`, a project `.venv` or `venv`, the mason `debugpy` venv, then
 a system `python3` / `python`.
 
-Inputs accepted by every mode of this adapter:
-
-| Input | Type | Description |
-| --- | --- | --- |
-| `django` | boolean | enable Django template debugging |
-| `gevent` | boolean | support gevent monkey-patched code |
-| `jinja` | boolean | enable Jinja2 template debugging |
-| `just_my_code` | boolean | debug only user-written code (default false) |
-| `log_to_file` | boolean | log debugger events to a file |
-| `path_mappings` | map | local=remote source path mappings |
-| `pyramid` | boolean | enable Pyramid application debugging |
-| `redirect_output` | boolean | route the debuggee's output to the debug console |
-| `show_return_value` | boolean | show function return values while stepping (default true) |
-| `sub_process` | boolean | debug child processes too |
-| `sudo` | boolean | run the debuggee with elevated permissions |
-
-**`attach`** *(attach)* — attach to a running process by pid
-
-| Input | Type | Description |
-| --- | --- | --- |
-| `pid` | integer | process id to attach to |
-
-**`code`** *(launch)* — debug a snippet of Python source, as `python -c`
-
-| Input | Type | Description |
-| --- | --- | --- |
-| `code` | string, required | Python code to debug |
-| `args` | list | command line arguments passed to the code |
-| `console` | string | one of `internalConsole`, `integratedTerminal`, `externalTerminal`; where the debuggee's stdio goes |
-| `cwd` | string dir | working directory |
-| `env` | map | environment variables |
-| `python` | list | python executable and interpreter arguments |
-| `stop_on_entry` | boolean | break at the first line of user code |
-
-**`listen`** *(attach)* — wait for a debugpy process to connect back on host/port
-
-| Input | Type | Description |
-| --- | --- | --- |
-| `port` | integer port, required | port to listen on |
-| `host` | string | host to listen on |
-
-**`module`** *(launch)* — debug a module, as `python -m`
-
-| Input | Type | Description |
-| --- | --- | --- |
-| `module` | string, required | module name to debug |
-| `args` | list | command line arguments passed to the module |
-| `console` | string | one of `internalConsole`, `integratedTerminal`, `externalTerminal`; where the debuggee's stdio goes |
-| `cwd` | string dir | working directory |
-| `env` | map | environment variables |
-| `python` | list | python executable and interpreter arguments |
-| `stop_on_entry` | boolean | break at the first line of user code |
-
-**`remote`** *(attach)* — attach to a remote debugpy process over host/port
-
-| Input | Type | Description |
-| --- | --- | --- |
-| `host` | string, required | remote debugpy host |
-| `port` | integer port, required | remote debugpy port |
-
-**`script`** *(launch)* — debug a Python file
-
-| Input | Type | Description |
-| --- | --- | --- |
-| `command` | command, required | command line to debug |
-| `console` | string | one of `internalConsole`, `integratedTerminal`, `externalTerminal`; where the debuggee's stdio goes |
-| `cwd` | string dir | working directory |
-| `env` | map | environment variables |
-| `python` | list | python executable and interpreter arguments |
-| `stop_on_entry` | boolean | break at the first line of user code |
+- **`attach`** *(attach)* — attach to a running process by pid
+- **`code`** *(launch)* — debug a snippet of Python source, as `python -c`
+- **`listen`** *(attach)* — wait for a debugpy process to connect back on host/port
+- **`module`** *(launch)* — debug a module, as `python -m`
+- **`remote`** *(attach)* — attach to a remote debugpy process over host/port
+- **`script`** *(launch)* — debug a Python file
 
 ### `codelldb` (C / C++ / Rust) <!-- tag: codelldb -->
 
@@ -179,155 +129,33 @@ Inputs accepted by every mode of this adapter:
 [`codelldb`](https://github.com/vadimcn/codelldb) on `PATH`. It is an adapter over LLDB, which
 it bundles, so there is no separate debugger to install.
 
-Inputs accepted by every mode of this adapter:
-
-| Input | Type | Description |
-| --- | --- | --- |
-| `breakpoint_mode` | string | one of `path`, `file`; how source breakpoints resolve |
-| `exit_commands` | list | LLDB commands run at the end of the session |
-| `expressions` | string | one of `simple`, `python`, `native`; default expression evaluator |
-| `init_commands` | list | LLDB commands run at debugger startup, before the target exists |
-| `post_run_commands` | list | LLDB commands run just after launching/attaching |
-| `pre_run_commands` | list | LLDB commands run just before launching/attaching |
-| `pre_terminate_commands` | list | LLDB commands run just before the debuggee is terminated |
-| `relative_path_base` | string dir | base directory for relative source paths |
-| `reverse_debugging` | boolean | enable reverse debugging |
-| `source_languages` | list | source languages in the program, for language-specific features |
-| `source_map` | map of dir | source path remappings, from=to |
-
-**`attach`** *(attach)* — attach to a running process by pid
-
-| Input | Type | Description |
-| --- | --- | --- |
-| `pid` | integer | process id to attach to |
-| `program` | string file | executable to read symbols from |
-| `stop_on_entry` | boolean | break immediately after attaching |
-
-**`binary`** *(launch)* — debug an executable
-
-| Input | Type | Description |
-| --- | --- | --- |
-| `command` | command, required | command line to debug |
-| `cwd` | string dir | working directory |
-| `env` | map | environment variables, added to the inherited ones |
-| `env_file` | string file | file of additional environment variables |
-| `stdio` | list | redirections for stdin, stdout, stderr, in that order |
-| `stop_on_entry` | boolean | break at program entry |
-| `terminal` | string | one of `console`, `integrated`, `external`; where the debuggee's stdio goes |
-
-**`core`** *(launch)* — post-mortem debug from a core file (custom launch)
-
-| Input | Type | Description |
-| --- | --- | --- |
-| `corefile` | string file, required | core file to load |
-| `program` | string file | executable that produced the core (read from the core when unset) |
-
-**`gdb_remote`** *(launch)* — attach over a gdb-remote (gdbserver) connection (custom launch)
-
-| Input | Type | Description |
-| --- | --- | --- |
-| `host` | string, required | gdbserver host |
-| `port` | integer port, required | gdbserver port |
-| `program` | string file | executable for symbols |
-
-**`process_name`** *(attach)* — attach to a process by executable, optionally waiting for it to launch
-
-| Input | Type | Description |
-| --- | --- | --- |
-| `program` | string file, required | executable to attach to |
-| `stop_on_entry` | boolean | break immediately after attaching |
-| `wait_for` | boolean | wait for the process to launch |
+- **`attach`** *(attach)* — attach to a running process by pid
+- **`binary`** *(launch)* — debug an executable
+- **`core`** *(launch)* — post-mortem debug from a core file (custom launch)
+- **`gdb_remote`** *(launch)* — attach over a gdb-remote (gdbserver) connection (custom launch)
+- **`process_name`** *(attach)* — attach to a process by executable, optionally waiting for it to launch
 
 ### `lldb` (C / C++ / Rust) <!-- tag: lldb -->
 
 [`lua/ezdap-adapters/lldb.lua`](lua/ezdap-adapters/lldb.lua). Needs `lldb-dap`, LLVM's own DAP
 adapter for LLDB, on `PATH` or from Xcode's toolchains on macOS.
 
-Inputs accepted by every mode of this adapter:
-
-| Input | Type | Description |
-| --- | --- | --- |
-| `source_map` | map of dir | source path remappings, from=to |
-| `source_path` | string dir | source root to remap ./ to |
-
-**`attach`** *(attach)* — attach to a running process by pid
-
-| Input | Type | Description |
-| --- | --- | --- |
-| `init_commands` | list | LLDB commands run at debugger startup |
-| `pid` | integer | process id to attach to |
-
-**`binary`** *(launch)* — debug an executable
-
-| Input | Type | Description |
-| --- | --- | --- |
-| `command` | command, required | command line to debug |
-| `console` | string | one of `internalConsole`, `integratedTerminal`, `externalTerminal`; where to run |
-| `cwd` | string dir | working directory |
-| `env` | map | environment variables |
-| `init_commands` | list | LLDB commands run at debugger startup |
-| `run_in_terminal` | boolean | run the debuggee in a terminal (default true) |
-| `stop_on_entry` | boolean | break at program entry |
-
-**`core`** *(attach)* — post-mortem debug from a core file
-
-| Input | Type | Description |
-| --- | --- | --- |
-| `corefile` | string file, required | core file to load |
-| `program` | string file | executable that produced the core |
-
-**`gdb_remote`** *(attach)* — attach over a gdb-remote (gdbserver) connection
-
-| Input | Type | Description |
-| --- | --- | --- |
-| `port` | integer port, required | gdbserver port |
-| `host` | string | gdbserver host |
-
-**`process_name`** *(attach)* — attach to a process by executable, optionally waiting for it to launch
-
-| Input | Type | Description |
-| --- | --- | --- |
-| `program` | string file, required | executable to attach to |
-| `init_commands` | list | LLDB commands run at debugger startup |
-| `wait_for` | boolean | wait for the process to launch |
+- **`attach`** *(attach)* — attach to a running process by pid
+- **`binary`** *(launch)* — debug an executable
+- **`core`** *(attach)* — post-mortem debug from a core file
+- **`gdb_remote`** *(attach)* — attach over a gdb-remote (gdbserver) connection
+- **`process_name`** *(attach)* — attach to a process by executable, optionally waiting for it to launch
 
 ### `gdb` (C / C++) <!-- tag: gdb -->
 
 [`lua/ezdap-adapters/gdb.lua`](lua/ezdap-adapters/gdb.lua). Needs
-[GDB](https://sourceware.org/gdb/) 14.1 or newer. It is its own adapter, driven as
-`gdb --interpreter=dap`.
+[GDB](https://sourceware.org/gdb/) 14.1 or newer; it is its own adapter, driven as `gdb
+--interpreter=dap`.
 
-**`attach`** *(attach)* — attach to a running process by pid
-
-| Input | Type | Description |
-| --- | --- | --- |
-| `pid` | integer | process id to attach to |
-| `program` | string file | local binary for symbols |
-
-**`binary`** *(launch)* — debug a native executable
-
-| Input | Type | Description |
-| --- | --- | --- |
-| `command` | command, required | command line to debug |
-| `ada_charset` | string | Ada source character set |
-| `cwd` | string dir | working directory |
-| `env` | map | environment variables |
-| `stop_at_main` | boolean | break at the start of main |
-| `stop_on_entry` | boolean | break at program entry |
-
-**`core`** *(attach)* — post-mortem debug from a core file (needs gdb newer than 17.2)
-
-| Input | Type | Description |
-| --- | --- | --- |
-| `corefile` | string file, required | core file to load |
-| `program` | string file | executable that produced the core |
-
-**`remote`** *(attach)* — connect to a gdbserver / remote target
-
-| Input | Type | Description |
-| --- | --- | --- |
-| `connection` | string, required | remote target, e.g. host:port |
-| `program` | string file | local binary for symbols |
+- **`attach`** *(attach)* — attach to a running process by pid
+- **`binary`** *(launch)* — debug a native executable
+- **`core`** *(attach)* — post-mortem debug from a core file (needs gdb newer than 17.2)
+- **`remote`** *(attach)* — connect to a gdbserver / remote target
 
 ### `delve` (Go) <!-- tag: delve -->
 
@@ -335,110 +163,20 @@ Inputs accepted by every mode of this adapter:
 [`dlv`](https://github.com/go-delve/delve) on `PATH`, under `$GOBIN` / `$GOPATH/bin` /
 `~/go/bin`, or from mason. It is its own adapter, driven as `dlv dap`.
 
-**`attach`** *(attach)* — attach to a running process by pid
-
-| Input | Type | Description |
-| --- | --- | --- |
-| `backend` | string | one of `default`, `native`, `lldb`, `rr`; debugger backend |
-| `pid` | integer | process id to attach to |
-
-**`binary`** *(launch)* — debug a pre-built Go binary
-
-| Input | Type | Description |
-| --- | --- | --- |
-| `command` | command, required | command line to debug (package or binary, plus args) |
-| `backend` | string | one of `default`, `native`, `lldb`, `rr`; debugger backend |
-| `cwd` | string dir | working directory for the debuggee |
-| `dlv_cwd` | string dir | working directory for the delve server itself |
-| `env` | map | environment variables for the debuggee |
-| `no_debug` | boolean | run the program without debugging it |
-| `substitute_path` | map | source path remappings, from=to |
-
-**`core`** *(launch)* — post-mortem debug from a core dump
-
-| Input | Type | Description |
-| --- | --- | --- |
-| `corefile_path` | string file, required | core dump to load |
-| `program` | string file, required | binary that produced the core |
-| `dlv_cwd` | string dir | working directory for the delve server itself |
-| `env` | map | environment variables for the debuggee |
-| `substitute_path` | map | source path remappings, from=to |
-
-**`package`** *(launch)* — build and debug a Go package/binary
-
-| Input | Type | Description |
-| --- | --- | --- |
-| `command` | command, required | command line to debug (package or binary, plus args) |
-| `backend` | string | one of `default`, `native`, `lldb`, `rr`; debugger backend |
-| `build_flags` | string | flags passed to the Go compiler |
-| `cwd` | string dir | working directory for the debuggee |
-| `dlv_cwd` | string dir | working directory for the delve server itself |
-| `env` | map | environment variables for the debuggee |
-| `goroutine_filters` | string | filter expression limiting the goroutines listed |
-| `hide_system_goroutines` | boolean | hide runtime goroutines from the thread list |
-| `no_debug` | boolean | run the program without debugging it |
-| `output` | string file | path for the compiled binary |
-| `show_global_variables` | boolean | show package-level variables among the scopes |
-| `show_pprof_labels` | list | pprof labels to show in goroutine names |
-| `show_raw_strings` | boolean | show strings without quoting or escaping |
-| `show_registers` | boolean | show CPU registers among the scopes |
-| `stack_trace_depth` | integer | maximum stack trace depth |
-| `stop_on_entry` | boolean | break at program entry |
-| `substitute_path` | map | source path remappings, from=to |
-
-**`replay`** *(launch)* — replay an rr trace recording
-
-| Input | Type | Description |
-| --- | --- | --- |
-| `program` | string file, required | binary the trace was recorded from |
-| `trace_dir_path` | string dir, required | rr trace directory to replay |
-| `dlv_cwd` | string dir | working directory for the delve server itself |
-| `env` | map | environment variables for the debuggee |
-| `substitute_path` | map | source path remappings, from=to |
-
-**`test`** *(launch)* — build and debug a Go test package
-
-| Input | Type | Description |
-| --- | --- | --- |
-| `command` | command, required | command line to debug (package or binary, plus args) |
-| `backend` | string | one of `default`, `native`, `lldb`, `rr`; debugger backend |
-| `build_flags` | string | flags passed to the Go compiler |
-| `cwd` | string dir | working directory for the debuggee |
-| `dlv_cwd` | string dir | working directory for the delve server itself |
-| `env` | map | environment variables for the debuggee |
-| `goroutine_filters` | string | filter expression limiting the goroutines listed |
-| `hide_system_goroutines` | boolean | hide runtime goroutines from the thread list |
-| `no_debug` | boolean | run the program without debugging it |
-| `output` | string file | path for the compiled binary |
-| `show_global_variables` | boolean | show package-level variables among the scopes |
-| `show_pprof_labels` | list | pprof labels to show in goroutine names |
-| `show_raw_strings` | boolean | show strings without quoting or escaping |
-| `show_registers` | boolean | show CPU registers among the scopes |
-| `stack_trace_depth` | integer | maximum stack trace depth |
-| `stop_on_entry` | boolean | break at program entry |
-| `substitute_path` | map | source path remappings, from=to |
+- **`attach`** *(attach)* — attach to a running process by pid
+- **`binary`** *(launch)* — debug a pre-built Go binary
+- **`core`** *(launch)* — post-mortem debug from a core dump
+- **`package`** *(launch)* — build and debug a Go package/binary
+- **`replay`** *(launch)* — replay an rr trace recording
+- **`test`** *(launch)* — build and debug a Go test package
 
 ### `netcoredbg` (.NET) <!-- tag: netcoredbg -->
 
 [`lua/ezdap-adapters/netcoredbg.lua`](lua/ezdap-adapters/netcoredbg.lua). Needs
 [`netcoredbg`](https://github.com/Samsung/netcoredbg) on `PATH` or from mason.
 
-**`attach`** *(attach)* — attach to a running process by pid
-
-| Input | Type | Description |
-| --- | --- | --- |
-| `pid` | integer | process id to attach to |
-
-**`binary`** *(launch)* — debug a .NET assembly
-
-| Input | Type | Description |
-| --- | --- | --- |
-| `command` | command, required | assembly or executable to debug, plus its arguments |
-| `cwd` | string dir | working directory |
-| `enable_step_filtering` | boolean | step over property accessors and operators (default true) |
-| `env` | map | environment variables |
-| `just_my_code` | boolean | debug only user code, skipping framework code (default true) |
-| `stop_at_entry` | boolean | break at program entry |
+- **`attach`** *(attach)* — attach to a running process by pid
+- **`binary`** *(launch)* — debug a .NET assembly
 
 ### `java-debug-server` (Java) <!-- tag: java-debug-server -->
 
@@ -447,88 +185,17 @@ an already-running java-debug server, e.g. one started by
 [nvim-jdtls](https://github.com/mfussenegger/nvim-jdtls). This definition only connects to it,
 so there is nothing for it to start.
 
-**`attach`** *(attach)* — attach to an external java-debug server (e.g. via nvim-jdtls)
-
-| Input | Type | Description |
-| --- | --- | --- |
-| `jdwp_port` | integer port, required | JDWP port of the debuggee JVM |
-| `server_port` | integer port, required | port the java-debug server listens on |
-| `jdwp_host` | string | JDWP host of the debuggee JVM |
-| `project_name` | string | project name used to resolve sources |
-| `server_host` | string | host of the java-debug server (default 127.0.0.1) |
-| `source_paths` | list of dir | extra source lookup paths |
-| `timeout` | integer | attach timeout in milliseconds |
+- **`attach`** *(attach)* — attach to an external java-debug server (e.g. via nvim-jdtls)
 
 ### `js-debug` (JavaScript / TypeScript) <!-- tag: js-debug -->
 
 [`lua/ezdap-adapters/js-debug.lua`](lua/ezdap-adapters/js-debug.lua). Needs `node`, plus the
 mason `js-debug-adapter` package ([js-debug](https://github.com/microsoft/vscode-js-debug)).
 
-Inputs accepted by every mode of this adapter:
-
-| Input | Type | Description |
-| --- | --- | --- |
-| `out_files` | list | globs matching generated JavaScript |
-| `resolve_source_map_locations` | list | globs where sourcemaps may be resolved |
-| `skip_files` | list | globs to skip when stepping |
-| `smart_step` | boolean | step over generated code with no original source |
-| `source_map_path_overrides` | map | rewrite sourcemap file locations, from=to |
-| `source_maps` | boolean | use source maps when they exist |
-
-**`attach`** *(attach)* — attach to a running process by pid
-
-| Input | Type | Description |
-| --- | --- | --- |
-| `attach_existing_children` | boolean | also attach to already-spawned child processes |
-| `auto_attach_child_processes` | boolean | attach to child processes automatically |
-| `continue_on_attach` | boolean | resume a program waiting on --inspect-brk |
-| `cwd` | string dir | working directory |
-| `env` | map | environment variables |
-| `env_file` | string file | file of environment variable definitions |
-| `pid` | integer | process id to attach to |
-| `restart` | boolean | try to reconnect when the connection is lost |
-
-**`browser`** *(launch)* — launch a Chromium browser and debug a page
-
-| Input | Type | Description |
-| --- | --- | --- |
-| `url` | string, required | url to open and attach to |
-| `path_mapping` | map of dir | url-to-local-folder mappings, from=to |
-| `runtime_args` | list | arguments passed to the browser |
-| `runtime_executable` | string | 'stable', 'canary', or a path to the browser executable |
-| `user_data_dir` | string dir | browser user-data directory (default: a throwaway one) |
-| `web_root` | string dir | absolute path to the webserver root |
-
-**`remote`** *(attach)* — attach to a remote Node.js process over host/port
-
-| Input | Type | Description |
-| --- | --- | --- |
-| `attach_existing_children` | boolean | also attach to already-spawned child processes |
-| `auto_attach_child_processes` | boolean | attach to child processes automatically |
-| `continue_on_attach` | boolean | resume a program waiting on --inspect-brk |
-| `cwd` | string dir | working directory |
-| `env` | map | environment variables |
-| `env_file` | string file | file of environment variable definitions |
-| `host` | string | remote Node.js host |
-| `local_root` | string dir | local directory containing the program |
-| `port` | integer port | remote Node.js debug port (default 9229) |
-| `remote_root` | string | remote directory containing the program |
-| `restart` | boolean | try to reconnect when the connection is lost |
-
-**`script`** *(launch)* — debug a Node.js/JS/TS file
-
-| Input | Type | Description |
-| --- | --- | --- |
-| `command` | command, required | script to debug, plus its arguments |
-| `auto_attach_child_processes` | boolean | attach to child processes automatically |
-| `console` | string | one of `internalConsole`, `integratedTerminal`, `externalTerminal`; where to run the debuggee |
-| `cwd` | string dir | working directory |
-| `env` | map | environment variables |
-| `env_file` | string file | file of environment variable definitions |
-| `restart` | boolean | try to reconnect when the connection is lost |
-| `runtime_args` | list | arguments passed to the runtime, before the program |
-| `runtime_executable` | string | runtime to run the script with (default node) |
-| `stop_on_entry` | boolean | break at program entry |
+- **`attach`** *(attach)* — attach to a running process by pid
+- **`browser`** *(launch)* — launch a Chromium browser and debug a page
+- **`remote`** *(attach)* — attach to a remote Node.js process over host/port
+- **`script`** *(launch)* — debug a Node.js/JS/TS file
 
 ### `php-debug` (PHP) <!-- tag: php-debug -->
 
@@ -537,42 +204,8 @@ mason `php-debug-adapter` package
 ([vscode-php-debug](https://github.com/xdebug/vscode-php-debug)). The debugger it fronts is
 [Xdebug](https://xdebug.org/), loaded into the PHP being debugged.
 
-Inputs accepted by every mode of this adapter:
-
-| Input | Type | Description |
-| --- | --- | --- |
-| `hostname` | string | address to bind while listening (default :: — every interface) |
-| `ignore` | list | globs whose errors are ignored (default **/vendor/**/*.php) |
-| `ignore_exceptions` | list | exception class names to ignore |
-| `log` | boolean | log the DAP/DBGP conversation to the debug console |
-| `max_connections` | integer | maximum parallel debug sessions (0 = unlimited) |
-| `path_mappings` | map of dir | source path mappings, server=local |
-| `port` | integer port | port to listen for Xdebug on (default 9003) |
-| `proxy_host` | string | DBGP proxy host (naming any proxy field enables the proxy) |
-| `proxy_key` | string | IDE key the proxy matches requests to this editor by |
-| `proxy_port` | integer port | DBGP proxy port (default 9001) |
-| `skip_entry_paths` | list | globs that abandon the session when the entry file matches |
-| `skip_files` | list | globs to skip when stepping (default **/vendor/**) |
-| `stop_on_entry` | boolean | break at the first line |
-| `stream_stdout` | integer | the debuggee's stdout: 0 off, 1 copy, 2 redirect |
-| `xdebug_cloud_token` | string | Xdebug Cloud token, used instead of a local port |
-| `xdebug_settings` | map | DBGP feature overrides, e.g. max_depth=3,max_children=100 |
-
-**`listen`** *(launch)* — wait for Xdebug to connect back on a port
-
-Takes the common inputs only.
-
-**`script`** *(launch)* — run a PHP script under Xdebug
-
-| Input | Type | Description |
-| --- | --- | --- |
-| `command` | command, required | script to debug, plus its arguments |
-| `console` | string | one of `internalConsole`, `integratedTerminal`, `externalTerminal`; where the debuggee's stdio goes |
-| `cwd` | string dir | working directory |
-| `env` | map | environment variables |
-| `env_file` | string file | file of environment variable definitions |
-| `runtime_args` | list | arguments passed to php, e.g. -dxdebug.mode=debug,-dxdebug.start_with_request=yes |
-| `runtime_executable` | string | php binary to run the script with (default php) |
+- **`listen`** *(launch)* — wait for Xdebug to connect back on a port
+- **`script`** *(launch)* — run a PHP script under Xdebug
 
 ### `rdbg` (Ruby) <!-- tag: rdbg -->
 
@@ -580,37 +213,9 @@ Takes the common inputs only.
 [`rdbg`](https://github.com/ruby/debug), from the `debug` gem, on `PATH`, under
 `$GEM_HOME/bin`, or from mason.
 
-**`command`** *(attach)* — debug a Ruby command — rspec, rake, ruby itself
-
-| Input | Type | Description |
-| --- | --- | --- |
-| `command` | command, required | command to debug, plus its arguments |
-| `cwd` | string dir | working directory |
-| `env` | map | environment variables |
-| `rdbg_args` | list | extra flags for rdbg itself, e.g. --session-name=api |
-| `stop_on_entry` | boolean | stay stopped where rdbg loaded the program, instead of continuing |
-| `use_bundler` | boolean | run under `bundle exec` |
-
-**`remote`** *(attach)* — attach to an rdbg server already listening on host/port
-
-| Input | Type | Description |
-| --- | --- | --- |
-| `port` | integer port, required | rdbg server port |
-| `host` | string | rdbg server host (default 127.0.0.1) |
-| `local_fs` | boolean | the debuggee shares this filesystem (default true) |
-| `path_mappings` | map of dir | source path mappings, remote=local |
-| `stop_on_entry` | boolean | stay stopped where rdbg loaded the program, instead of continuing |
-
-**`script`** *(attach)* — debug a Ruby script
-
-| Input | Type | Description |
-| --- | --- | --- |
-| `command` | command, required | Ruby script to debug, plus its arguments |
-| `cwd` | string dir | working directory |
-| `env` | map | environment variables |
-| `rdbg_args` | list | extra flags for rdbg itself, e.g. --session-name=api |
-| `stop_on_entry` | boolean | stay stopped where rdbg loaded the program, instead of continuing |
-| `use_bundler` | boolean | run under `bundle exec` |
+- **`command`** *(attach)* — debug a Ruby command — rspec, rake, ruby itself
+- **`remote`** *(attach)* — attach to an rdbg server already listening on host/port
+- **`script`** *(attach)* — debug a Ruby script
 
 ### `dart` (Dart / Flutter) <!-- tag: dart -->
 
@@ -619,82 +224,12 @@ Takes the common inputs only.
 / `$FLUTTER_ROOT`. The adapters ship inside the SDK and front the VM Service, so there is
 nothing else to install.
 
-Inputs accepted by every mode of this adapter:
-
-| Input | Type | Description |
-| --- | --- | --- |
-| `additional_project_paths` | list of dir | extra paths to treat as the user's own code |
-| `allow_ansi_color_output` | boolean | allow ansi colour codes in the debuggee's output |
-| `cwd` | string dir | working directory |
-| `debug_external_package_libraries` | boolean | step into pub package libraries (default true) |
-| `debug_sdk_libraries` | boolean | step into SDK libraries (default true) |
-| `env` | map | environment variables for the launched process |
-| `evaluate_getters_in_debug_views` | boolean | evaluate getters eagerly and show them inline |
-| `evaluate_to_string_in_debug_views` | boolean | call toString() on objects shown in variables and hovers |
-| `show_getters_in_debug_views` | boolean | list getters alongside fields, evaluated when expanded |
-
-**`attach`** *(attach)* — attach to a running Dart VM Service
-
-| Input | Type | Description |
-| --- | --- | --- |
-| `vm_service_info_file` | string file | file to read the VM Service uri from |
-| `vm_service_uri` | string | VM Service uri of the running app |
-
-**`flutter`** *(launch)* — debug a Flutter app on a device
-
-| Input | Type | Description |
-| --- | --- | --- |
-| `custom_tool` | string file | a compatible tool to run instead of dart/flutter |
-| `no_debug` | boolean | run the app without debugging it |
-| `command` | command | entry point to debug, plus its arguments (default: the project's own) |
-| `custom_tool_replaces_args` | integer | arguments to drop from the front of the tool command line when using custom_tool |
-| `tool_args` | list | arguments for the dart/flutter tool, e.g. -d,chrome or --flavor,dev |
-
-**`flutter_attach`** *(attach)* — attach to a running Flutter app
-
-| Input | Type | Description |
-| --- | --- | --- |
-| `custom_tool` | string file | a compatible tool to run instead of dart/flutter |
-| `custom_tool_replaces_args` | integer | arguments to drop from the front of the tool command line when using custom_tool |
-| `program` | string file | entry point of the running app, for resolving its sources |
-| `tool_args` | list | arguments for the dart/flutter tool, e.g. -d,chrome or --flavor,dev |
-| `vm_service_info_file` | string file | file to read the VM Service uri from |
-| `vm_service_uri` | string | VM Service uri of the running app |
-
-**`flutter_test`** *(launch)* — debug a Flutter test suite
-
-| Input | Type | Description |
-| --- | --- | --- |
-| `custom_tool` | string file | a compatible tool to run instead of dart/flutter |
-| `no_debug` | boolean | run the tests without debugging them |
-| `command` | command | test file to debug, plus its arguments (default: every test) |
-| `custom_tool_replaces_args` | integer | arguments to drop from the front of the tool command line when using custom_tool |
-| `tool_args` | list | arguments for the dart/flutter tool, e.g. -d,chrome or --flavor,dev |
-
-**`script`** *(launch)* — debug a Dart program
-
-| Input | Type | Description |
-| --- | --- | --- |
-| `command` | command, required | Dart entry point to debug, plus its arguments |
-| `console` | string | one of `internalConsole`, `terminal`, `externalTerminal`; where the debuggee runs; a terminal is what gives it stdin |
-| `custom_tool` | string file | a compatible tool to run instead of dart/flutter |
-| `custom_tool_replaces_args` | integer | arguments to drop from the front of the tool command line when using custom_tool |
-| `no_debug` | boolean | run the program without debugging it |
-| `tool_args` | list | arguments for the dart/flutter tool, e.g. -d,chrome or --flavor,dev |
-| `vm_additional_args` | list | arguments passed straight to the Dart VM, before the tool's own |
-| `vm_service_port` | integer port | fixed port for the debuggee's VM Service |
-
-**`test`** *(launch)* — debug a Dart test suite
-
-| Input | Type | Description |
-| --- | --- | --- |
-| `command` | command, required | test file to debug, plus its arguments |
-| `console` | string | one of `internalConsole`, `terminal`, `externalTerminal`; where the tests run; a terminal is what gives them stdin |
-| `custom_tool` | string file | a compatible tool to run instead of dart/flutter |
-| `custom_tool_replaces_args` | integer | arguments to drop from the front of the tool command line when using custom_tool |
-| `no_debug` | boolean | run the tests without debugging them |
-| `tool_args` | list | arguments for the dart/flutter tool, e.g. -d,chrome or --flavor,dev |
-| `vm_additional_args` | list | arguments passed straight to the Dart VM, before the tool's own |
+- **`attach`** *(attach)* — attach to a running Dart VM Service
+- **`flutter`** *(launch)* — debug a Flutter app on a device
+- **`flutter_attach`** *(attach)* — attach to a running Flutter app
+- **`flutter_test`** *(launch)* — debug a Flutter test suite
+- **`script`** *(launch)* — debug a Dart program
+- **`test`** *(launch)* — debug a Dart test suite
 
 ### `bash-debug-adapter` (Bash) <!-- tag: bash-debug-adapter -->
 
@@ -703,14 +238,7 @@ Inputs accepted by every mode of this adapter:
 The debugger it fronts is bashdb, taken from mason, `$BASHDB_HOME`, `/usr/local/share/bashdb`,
 or `/usr/share/bashdb`.
 
-**`script`** *(launch)* — debug a bash script
-
-| Input | Type | Description |
-| --- | --- | --- |
-| `cwd` | string dir | working directory |
-| `env` | map | environment variables |
-| `script` | string file | bash script to debug |
-| `terminal_kind` | string | one of `integrated`, `external`, `debugConsole`; where the debuggee's stdio goes (default integrated) |
+- **`script`** *(launch)* — debug a bash script
 
 ### `local-lua-debugger` (Lua) <!-- tag: local-lua-debugger -->
 
@@ -718,33 +246,8 @@ or `/usr/share/bashdb`.
 `node`, plus the mason `local-lua-debugger-vscode` package
 ([local-lua-debugger](https://github.com/tomblind/local-lua-debugger-vscode)).
 
-Inputs accepted by every mode of this adapter:
-
-| Input | Type | Description |
-| --- | --- | --- |
-| `break_in_coroutines` | boolean | break on errors raised inside coroutines |
-| `communication` | string | one of `stdio`, `pipe`; adapter transport |
-| `cwd` | string dir | working directory |
-| `env` | map | environment variables |
-| `ignore_patterns` | list | Lua patterns matching scripts to skip when stepping |
-| `script_files` | list | globs of scripts to debug (needed for source-mapped breakpoints) |
-| `script_roots` | list of dir | alternate paths to find Lua scripts in |
-| `step_unmapped_lines` | boolean | step into Lua when a source-mapped line has no mapping |
-| `stop_on_entry` | boolean | break on the first line after the debug hook is set |
-| `verbose` | boolean | enable verbose debugger output |
-
-**`executable`** *(launch)* — debug a custom executable that embeds Lua
-
-| Input | Type | Description |
-| --- | --- | --- |
-| `command` | command, required | custom command to run, plus its arguments |
-
-**`script`** *(launch)* — debug a Lua script
-
-| Input | Type | Description |
-| --- | --- | --- |
-| `command` | command, required | script to debug, plus its arguments |
-| `lua` | string | Lua interpreter to run the script with (default lua) |
+- **`executable`** *(launch)* — debug a custom executable that embeds Lua
+- **`script`** *(launch)* — debug a Lua script
 
 ## Locating the adapter <!-- tag: locating -->
 
