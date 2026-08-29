@@ -36,9 +36,10 @@ local function _inputs(extra)
 end
 
 ---Assign the common attributes, plus the `name`/`type` every codelldb body carries.
----@param params table
 ---@param inputs table<string, any>
-local function _common_build(params, inputs)
+---@return table params
+local function _common_body(inputs)
+    local params = {}
     params.name                 = "codelldb"
     params.type                 = "lldb"
     params.sourceMap            = inputs.source_map
@@ -52,6 +53,7 @@ local function _common_build(params, inputs)
     params.postRunCommands      = inputs.post_run_commands
     params.preTerminateCommands = inputs.pre_terminate_commands
     params.exitCommands         = inputs.exit_commands
+    return params
 end
 
 ---@type ezdap.AdapterDef
@@ -72,8 +74,8 @@ return {
                 terminal      = { type = "string", choices = { "console", "integrated", "external" }, description = "where the debuggee's stdio goes" },
                 stop_on_entry = { type = "boolean", description = "break at program entry" },
             },
-            build = function(params, _, inputs)
-                _common_build(params, inputs)
+            build = function(inputs)
+                local params = _common_body(inputs)
                 params.program, params.args = require("ezdap.shared").split_command(inputs.command)
                 params.cwd         = inputs.cwd
                 params.env         = inputs.env
@@ -81,6 +83,7 @@ return {
                 params.stdio       = inputs.stdio
                 params.terminal    = inputs.terminal
                 params.stopOnEntry = inputs.stop_on_entry
+                return params
             end,
         },
         attach = {
@@ -91,13 +94,14 @@ return {
                 program       = { type = "string", format = "file", description = "executable to read symbols from" },
                 stop_on_entry = { type = "boolean", description = "break immediately after attaching" },
             },
-            build = function(params, _, inputs)
+            build = function(inputs)
                 local pid, err = require("ezdap.shared").resolve_pid(inputs.pid)
-                if not pid then return err end
-                _common_build(params, inputs)
+                if not pid then return nil, err end
+                local params = _common_body(inputs)
                 params.pid         = pid
                 params.program     = inputs.program
                 params.stopOnEntry = inputs.stop_on_entry
+                return params
             end,
         },
         process_name = {
@@ -108,11 +112,12 @@ return {
                 wait_for      = { type = "boolean", description = "wait for the process to launch" },
                 stop_on_entry = { type = "boolean", description = "break immediately after attaching" },
             },
-            build = function(params, _, inputs)
-                _common_build(params, inputs)
+            build = function(inputs)
+                local params = _common_body(inputs)
                 params.program     = inputs.program
                 params.waitFor     = inputs.wait_for
                 params.stopOnEntry = inputs.stop_on_entry
+                return params
             end,
         },
         -- A custom launch drives LLDB by command rather than by `program`, so both
@@ -127,13 +132,14 @@ return {
                 program  = { type = "string", format = "file", description = "executable that produced the core (read from the core when unset)" },
                 corefile = { type = "string", format = "file", required = true, description = "core file to load" },
             },
-            build = function(params, _, inputs)
-                _common_build(params, inputs)
+            build = function(inputs)
+                local params = _common_body(inputs)
                 local target = inputs.program and ("target create %s --core %s")
                     :format(_quoted(inputs.program), _quoted(inputs.corefile))
                     or ("target create --core %s"):format(_quoted(inputs.corefile))
                 params.targetCreateCommands  = { target }
                 params.processCreateCommands = {}
+                return params
             end,
         },
         gdb_remote = {
@@ -147,12 +153,13 @@ return {
             -- `host`/`port` are required for the same reason `core` always writes a
             -- `processCreateCommands`: without one codelldb runs `process launch` and
             -- debugs the program locally instead of the remote.
-            build = function(params, _, inputs)
-                _common_build(params, inputs)
+            build = function(inputs)
+                local params = _common_body(inputs)
                 if inputs.program then
                     params.targetCreateCommands = { "target create " .. _quoted(inputs.program) }
                 end
                 params.processCreateCommands = { ("gdb-remote %s:%d"):format(inputs.host, inputs.port) }
+                return params
             end,
         },
     },

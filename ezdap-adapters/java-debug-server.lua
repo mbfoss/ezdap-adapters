@@ -20,14 +20,20 @@ return {
                 source_paths = { type = "list", item_format = "dir", description = "extra source lookup paths" },
                 timeout      = { type = "integer", description = "attach timeout in milliseconds" },
             },
-            build = function(params, connect, inputs)
-                params.hostName    = inputs.jdwp_host or "127.0.0.1"
-                params.port        = inputs.jdwp_port
-                params.projectName = inputs.project_name
-                params.sourcePaths = inputs.source_paths
-                params.timeout     = inputs.timeout or 30000
-                connect.host = inputs.server_host or "127.0.0.1"
-                connect.port = inputs.server_port
+            -- Two host/port pairs, and they are not the same connection: the body's
+            -- names the JDWP port the debuggee exposes, the second return the
+            -- java-debug-server ezdap itself dials.
+            build = function(inputs)
+                return {
+                    hostName    = inputs.jdwp_host or "127.0.0.1",
+                    port        = inputs.jdwp_port,
+                    projectName = inputs.project_name,
+                    sourcePaths = inputs.source_paths,
+                    timeout     = inputs.timeout or 30000,
+                }, {
+                    host = inputs.server_host or "127.0.0.1",
+                    port = inputs.server_port,
+                }
             end,
         },
     },

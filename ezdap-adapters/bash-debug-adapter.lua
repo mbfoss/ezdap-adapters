@@ -43,19 +43,21 @@ return {
                 env           = { type = "map", description = "environment variables" },
                 terminal_kind = { type = "string", choices = { "integrated", "external", "debugConsole" }, description = "where the debuggee's stdio goes (default integrated)" },
             },
-            build = function(params, _, inputs)
-                params.type          = "bashdb"
-                params.name          = "Launch Bash Script"
-                params.program       = inputs.script
-                params.cwd           = inputs.cwd
-                params.env           = inputs.env
-                params.pathBash      = bash_tools.bash
-                params.pathBashdb    = bash_tools.bashdb
-                params.pathBashdbLib = _resolve_lib_dir()
-                params.pathCat       = bash_tools.cat
-                params.pathMkfifo    = bash_tools.mkfifo
-                params.pathPkill     = bash_tools.pkill
-                params.terminalKind  = inputs.terminal_kind or "integrated"
+            build = function(inputs)
+                return {
+                    type          = "bashdb",
+                    name          = "Launch Bash Script",
+                    program       = inputs.script,
+                    cwd           = inputs.cwd,
+                    env           = inputs.env,
+                    pathBash      = bash_tools.bash,
+                    pathBashdb    = bash_tools.bashdb,
+                    pathBashdbLib = _resolve_lib_dir(),
+                    pathCat       = bash_tools.cat,
+                    pathMkfifo    = bash_tools.mkfifo,
+                    pathPkill     = bash_tools.pkill,
+                    terminalKind  = inputs.terminal_kind or "integrated",
+                }
             end,
         },
     },

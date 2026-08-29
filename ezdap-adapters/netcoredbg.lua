@@ -63,13 +63,17 @@ return {
                 just_my_code          = { type = "boolean", description = "debug only user code, skipping framework code (default true)" },
                 enable_step_filtering = { type = "boolean", description = "step over property accessors and operators (default true)" },
             },
-            build = function(params, _, inputs)
-                params.program, params.args = require("ezdap.shared").split_command(inputs.command)
-                params.cwd                 = inputs.cwd
-                params.env                 = inputs.env
-                params.stopAtEntry         = inputs.stop_at_entry
-                params.justMyCode          = inputs.just_my_code
-                params.enableStepFiltering = inputs.enable_step_filtering
+            build = function(inputs)
+                local program, args = require("ezdap.shared").split_command(inputs.command)
+                return {
+                    program             = program,
+                    args                = args,
+                    cwd                 = inputs.cwd,
+                    env                 = inputs.env,
+                    stopAtEntry         = inputs.stop_at_entry,
+                    justMyCode          = inputs.just_my_code,
+                    enableStepFiltering = inputs.enable_step_filtering,
+                }
             end,
         },
         -- The attach handler reads `processId` alone — the launch-side options are
@@ -80,10 +84,12 @@ return {
             inputs = {
                 pid = { type = "integer", description = "process id to attach to" },
             },
-            build = function(params, _, inputs)
+            build = function(inputs)
                 local pid, err = require("ezdap.shared").resolve_pid(inputs.pid)
-                if not pid then return err end
-                params.processId = pid
+                if not pid then return nil, err end
+                return {
+                    processId = pid,
+                }
             end,
         },
     },

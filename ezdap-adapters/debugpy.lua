@@ -121,9 +121,10 @@ end
 
 ---Assign the common attributes, plus the `type` every debugpy body carries.
 ---`justMyCode`/`showReturnValue` keep ezdap's defaults when left unset.
----@param params table
 ---@param inputs table<string, any>
-local function _common_build(params, inputs)
+---@return table params
+local function _common_body(inputs)
+    local params = {}
     params.type            = "python"
     params.justMyCode      = inputs.just_my_code == nil and false or inputs.just_my_code
     params.showReturnValue = inputs.show_return_value == nil and true or inputs.show_return_value
@@ -142,6 +143,7 @@ local function _common_build(params, inputs)
         end
         params.pathMappings = mappings
     end
+    return params
 end
 
 ---Launch-only attributes shared by the `script`, `module` and `code` modes.
@@ -154,15 +156,16 @@ local _launch_inputs = {
     stop_on_entry = { type = "boolean", description = "break at the first line of user code" },
 }
 
----@param params table
 ---@param inputs table<string, any>
-local function _launch_build(params, inputs)
-    _common_build(params, inputs)
+---@return table params
+local function _launch_body(inputs)
+    local params = _common_body(inputs)
     params.cwd         = inputs.cwd
     params.env         = inputs.env
     params.python      = inputs.python
     params.console     = inputs.console
     params.stopOnEntry = inputs.stop_on_entry
+    return params
 end
 
 -- Attach to a remote Python process: the `connect`/`listen` groups target the
@@ -182,9 +185,10 @@ return {
             inputs = _inputs(vim.tbl_extend("error", vim.deepcopy(_launch_inputs), {
                 command = { type = "string", format = "command", required = true, description = "command line to debug" },
             })),
-            build = function(params, _, inputs)
-                _launch_build(params, inputs)
+            build = function(inputs)
+                local params = _launch_body(inputs)
                 params.program, params.args = require("ezdap.shared").split_command(inputs.command)
+                return params
             end,
         },
         module = {
@@ -194,10 +198,11 @@ return {
                 module = { type = "string", required = true, description = "module name to debug" },
                 args   = { type = "list", description = "command line arguments passed to the module" },
             })),
-            build = function(params, _, inputs)
-                _launch_build(params, inputs)
+            build = function(inputs)
+                local params = _launch_body(inputs)
                 params.module = inputs.module
                 params.args   = inputs.args
+                return params
             end,
         },
         code = {
@@ -207,10 +212,11 @@ return {
                 code = { type = "string", required = true, description = "Python code to debug" },
                 args = { type = "list", description = "command line arguments passed to the code" },
             })),
-            build = function(params, _, inputs)
-                _launch_build(params, inputs)
+            build = function(inputs)
+                local params = _launch_body(inputs)
                 params.code = inputs.code
                 params.args = inputs.args
+                return params
             end,
         },
         attach = {
@@ -219,11 +225,12 @@ return {
             inputs = _inputs {
                 pid = { type = "integer", description = "process id to attach to" },
             },
-            build = function(params, _, inputs)
+            build = function(inputs)
                 local pid, err = require("ezdap.shared").resolve_pid(inputs.pid)
-                if not pid then return err end
-                _common_build(params, inputs)
+                if not pid then return nil, err end
+                local params = _common_body(inputs)
                 params.processId = pid
+                return params
             end,
         },
         remote = {
@@ -233,9 +240,10 @@ return {
                 host = { type = "string", required = true, description = "remote debugpy host" },
                 port = { type = "integer", format = "port", required = true, description = "remote debugpy port" },
             },
-            build = function(params, _, inputs)
-                _common_build(params, inputs)
+            build = function(inputs)
+                local params = _common_body(inputs)
                 params.connect = { host = inputs.host, port = inputs.port }
+                return params
             end,
         },
         -- The inverse of `remote`: the adapter listens and the debuggee, started
@@ -247,9 +255,10 @@ return {
                 host = { type = "string", description = "host to listen on" },
                 port = { type = "integer", format = "port", required = true, description = "port to listen on" },
             },
-            build = function(params, _, inputs)
-                _common_build(params, inputs)
+            build = function(inputs)
+                local params = _common_body(inputs)
                 params.listen = { host = inputs.host or "127.0.0.1", port = inputs.port }
+                return params
             end,
         },
     },

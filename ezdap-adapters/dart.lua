@@ -103,9 +103,10 @@ local function _inputs(...)
     return out
 end
 
----@param params table
 ---@param inputs table<string, any>
-local function _common_build(params, inputs)
+---@return table params
+local function _common_body(inputs)
+    local params = {}
     params.cwd                           = inputs.cwd
     params.env                           = inputs.env
     params.additionalProjectPaths        = inputs.additional_project_paths
@@ -115,15 +116,17 @@ local function _common_build(params, inputs)
     params.evaluateGettersInDebugViews   = inputs.evaluate_getters_in_debug_views
     params.evaluateToStringInDebugViews  = inputs.evaluate_to_string_in_debug_views
     params.allowAnsiColorOutput          = inputs.allow_ansi_color_output
+    return params
 end
 
----@param params table
 ---@param inputs table<string, any>
-local function _tool_build(params, inputs)
-    _common_build(params, inputs)
+---@return table params
+local function _tool_body(inputs)
+    local params = _common_body(inputs)
     params.toolArgs               = inputs.tool_args
     params.customTool             = inputs.custom_tool
     params.customToolReplacesArgs = inputs.custom_tool_replaces_args
+    return params
 end
 
 ---The launch half shared by Dart and Flutter: one `command` input carries the
@@ -131,14 +134,15 @@ end
 ---is run with). Flutter leaves `program` optional — without one the tool runs the
 ---project's own entry point — so an unset command assigns nothing rather than an
 ---empty program.
----@param params table
 ---@param inputs table<string, any>
-local function _launch_build(params, inputs)
-    _tool_build(params, inputs)
+---@return table params
+local function _launch_body(inputs)
+    local params = _tool_body(inputs)
     if inputs.command then
         params.program, params.args = require("ezdap.shared").split_command(inputs.command)
     end
     params.noDebug = inputs.no_debug
+    return params
 end
 
 ---@type table<string, ezdap.Mode>
@@ -156,11 +160,12 @@ local _modes = {
             vm_service_port    = { type = "integer", format = "port", description = "fixed port for the debuggee's VM Service" },
             console            = { type = "string", choices = { "internalConsole", "terminal", "externalTerminal" }, description = "where the debuggee runs; a terminal is what gives it stdin" },
         }),
-        build = function(params, _, inputs)
-            _launch_build(params, inputs)
+        build = function(inputs)
+            local params = _launch_body(inputs)
             params.vmAdditionalArgs = inputs.vm_additional_args
             params.vmServicePort    = inputs.vm_service_port
             params.console          = inputs.console
+            return params
         end,
     },
     -- The same adapter in test mode (`dart debug_adapter --test`): it runs the
@@ -174,10 +179,11 @@ local _modes = {
             vm_additional_args = { type = "list", description = "arguments passed straight to the Dart VM, before the tool's own" },
             console            = { type = "string", choices = { "internalConsole", "terminal", "externalTerminal" }, description = "where the tests run; a terminal is what gives them stdin" },
         }),
-        build = function(params, _, inputs)
-            _launch_build(params, inputs)
+        build = function(inputs)
+            local params = _launch_body(inputs)
             params.vmAdditionalArgs = inputs.vm_additional_args
             params.console          = inputs.console
+            return params
         end,
     },
     -- Dart names a running debuggee by its VM Service, not by a pid: the uri a
@@ -187,10 +193,11 @@ local _modes = {
         description = "attach to a running Dart VM Service",
         request = "attach",
         inputs = _inputs(_attach_inputs),
-        build = function(params, _, inputs)
-            _common_build(params, inputs)
+        build = function(inputs)
+            local params = _common_body(inputs)
             params.vmServiceUri      = inputs.vm_service_uri
             params.vmServiceInfoFile = inputs.vm_service_info_file
+            return params
         end,
     },
     -- Flutter's own adapter, which drives the flutter tool rather than the VM
@@ -203,8 +210,9 @@ local _modes = {
             command  = { type = "string", format = "command", required = false, description = "entry point to debug, plus its arguments (default: the project's own)" },
             no_debug = { type = "boolean", description = "run the app without debugging it" },
         }),
-        build = function(params, _, inputs)
-            _launch_build(params, inputs)
+        build = function(inputs)
+            local params = _launch_body(inputs)
+            return params
         end,
     },
     flutter_test = {
@@ -214,8 +222,9 @@ local _modes = {
             command  = { type = "string", format = "command", required = false, description = "test file to debug, plus its arguments (default: every test)" },
             no_debug = { type = "boolean", description = "run the tests without debugging them" },
         }),
-        build = function(params, _, inputs)
-            _launch_build(params, inputs)
+        build = function(inputs)
+            local params = _launch_body(inputs)
+            return params
         end,
     },
     -- Attaching to a Flutter app already running on a device: the flutter tool
@@ -226,11 +235,12 @@ local _modes = {
         inputs = _inputs(_tool_inputs, _attach_inputs, {
             program = { type = "string", format = "file", description = "entry point of the running app, for resolving its sources" },
         }),
-        build = function(params, _, inputs)
-            _tool_build(params, inputs)
+        build = function(inputs)
+            local params = _tool_body(inputs)
             params.vmServiceUri      = inputs.vm_service_uri
             params.vmServiceInfoFile = inputs.vm_service_info_file
             params.program           = inputs.program
+            return params
         end,
     },
 }

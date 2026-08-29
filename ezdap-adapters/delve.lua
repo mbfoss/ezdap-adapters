@@ -133,9 +133,10 @@ local function _inputs(...)
     return out
 end
 
----@param params table
 ---@param inputs table<string, any>
-local function _any_mode_build(params, inputs)
+---@return table params
+local function _any_mode_body(inputs)
+    local params = {}
     params.dlvCwd = inputs.dlv_cwd
     params.env    = inputs.env
     -- delve wants a list of {from, to} pairs, not a flat mapping.
@@ -146,22 +147,24 @@ local function _any_mode_build(params, inputs)
         end
         params.substitutePath = rules
     end
+    return params
 end
 
----@param params table
 ---@param inputs table<string, any>
-local function _process_build(params, inputs)
-    _any_mode_build(params, inputs)
+---@return table params
+local function _process_body(inputs)
+    local params = _any_mode_body(inputs)
     params.program, params.args = require("ezdap.shared").split_command(inputs.command)
     params.cwd                  = inputs.cwd
     params.backend              = inputs.backend
     params.noDebug              = inputs.no_debug
+    return params
 end
 
----@param params table
 ---@param inputs table<string, any>
-local function _build_build(params, inputs)
-    _process_build(params, inputs)
+---@return table params
+local function _build_body(inputs)
+    local params = _process_body(inputs)
     params.buildFlags           = inputs.build_flags
     params.output               = inputs.output
     params.stopOnEntry          = inputs.stop_on_entry
@@ -172,6 +175,7 @@ local function _build_build(params, inputs)
     params.showRawStrings       = inputs.show_raw_strings
     params.hideSystemGoroutines = inputs.hide_system_goroutines
     params.goroutineFilters     = inputs.goroutine_filters
+    return params
 end
 
 ---@type ezdap.AdapterDef
@@ -187,27 +191,30 @@ return {
             description = "build and debug a Go package/binary",
             request = "launch",
             inputs = _inputs(_process_inputs, _build_inputs),
-            build = function(params, _, inputs)
+            build = function(inputs)
+                local params = _build_body(inputs)
                 params.mode = "debug"
-                _build_build(params, inputs)
+                return params
             end,
         },
         test = {
             description = "build and debug a Go test package",
             request = "launch",
             inputs = _inputs(_process_inputs, _build_inputs),
-            build = function(params, _, inputs)
+            build = function(inputs)
+                local params = _build_body(inputs)
                 params.mode = "test"
-                _build_build(params, inputs)
+                return params
             end,
         },
         binary = {
             description = "debug a pre-built Go binary",
             request = "launch",
             inputs = _inputs(_process_inputs),
-            build = function(params, _, inputs)
+            build = function(inputs)
+                local params = _process_body(inputs)
                 params.mode = "exec"
-                _process_build(params, inputs)
+                return params
             end,
         },
         -- Replay and core are post-mortem: they read a recording rather than run a
@@ -219,11 +226,12 @@ return {
                 program        = { type = "string", format = "file", required = true, description = "binary the trace was recorded from" },
                 trace_dir_path = { type = "string", format = "dir", required = true, description = "rr trace directory to replay" },
             },
-            build = function(params, _, inputs)
+            build = function(inputs)
+                local params = _any_mode_body(inputs)
                 params.mode = "replay"
-                _any_mode_build(params, inputs)
                 params.program      = inputs.program
                 params.traceDirPath = inputs.trace_dir_path
+                return params
             end,
         },
         core = {
@@ -233,11 +241,12 @@ return {
                 program       = { type = "string", format = "file", required = true, description = "binary that produced the core" },
                 corefile_path = { type = "string", format = "file", required = true, description = "core dump to load" },
             },
-            build = function(params, _, inputs)
+            build = function(inputs)
+                local params = _any_mode_body(inputs)
                 params.mode = "core"
-                _any_mode_build(params, inputs)
                 params.program      = inputs.program
                 params.corefilePath = inputs.corefile_path
+                return params
             end,
         },
         -- Only `dlv dap`-served attach mode is "local" (attach to a process the
@@ -250,12 +259,14 @@ return {
                 pid     = { type = "integer", description = "process id to attach to" },
                 backend = { type = "string", choices = { "default", "native", "lldb", "rr" }, description = "debugger backend" },
             },
-            build = function(params, _, inputs)
+            build = function(inputs)
                 local pid, err = require("ezdap.shared").resolve_pid(inputs.pid)
-                if not pid then return err end
-                params.mode      = "local"
-                params.processId = pid
-                params.backend   = inputs.backend
+                if not pid then return nil, err end
+                return {
+                    mode      = "local",
+                    processId = pid,
+                    backend   = inputs.backend,
+                }
             end,
         },
     },

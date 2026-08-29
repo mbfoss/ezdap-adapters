@@ -61,19 +61,23 @@ return {
                 source_map      = { type = "map", item_format = "dir", description = "source path remappings, from=to" },
                 init_commands   = { type = "list", description = "LLDB commands run at debugger startup" },
             },
-            build = function(params, _, inputs)
-                params.name                 = "lldb"
-                params.type                 = "lldb-dap"
-                params.program, params.args = require("ezdap.shared").split_command(inputs.command)
-                params.cwd                  = inputs.cwd
-                params.env                  = inputs.env
-                params.stopOnEntry          = inputs.stop_on_entry
-                params.console              = inputs.console
-                -- Unset means the default, so only an explicit false turns it off.
-                params.runInTerminal        = inputs.run_in_terminal ~= false
-                params.sourcePath           = inputs.source_path
-                params.sourceMap            = inputs.source_map
-                params.initCommands         = inputs.init_commands
+            build = function(inputs)
+                local program, args = require("ezdap.shared").split_command(inputs.command)
+                return {
+                    name          = "lldb",
+                    type          = "lldb-dap",
+                    program       = program,
+                    args          = args,
+                    cwd           = inputs.cwd,
+                    env           = inputs.env,
+                    stopOnEntry   = inputs.stop_on_entry,
+                    console       = inputs.console,
+                    -- Unset means the default, so only an explicit false turns it off.
+                    runInTerminal = inputs.run_in_terminal ~= false,
+                    sourcePath    = inputs.source_path,
+                    sourceMap     = inputs.source_map,
+                    initCommands  = inputs.init_commands,
+                }
             end,
         },
         attach = {
@@ -85,15 +89,17 @@ return {
                 source_map    = { type = "map", item_format = "dir", description = "source path remappings, from=to" },
                 init_commands = { type = "list", description = "LLDB commands run at debugger startup" },
             },
-            build = function(params, _, inputs)
+            build = function(inputs)
                 local pid, err = require("ezdap.shared").resolve_pid(inputs.pid)
-                if not pid then return err end
-                params.name         = "lldb"
-                params.type         = "lldb-dap"
-                params.pid          = pid
-                params.sourcePath   = inputs.source_path
-                params.sourceMap    = inputs.source_map
-                params.initCommands = inputs.init_commands
+                if not pid then return nil, err end
+                return {
+                    name         = "lldb",
+                    type         = "lldb-dap",
+                    pid          = pid,
+                    sourcePath   = inputs.source_path,
+                    sourceMap    = inputs.source_map,
+                    initCommands = inputs.init_commands,
+                }
             end,
         },
         process_name = {
@@ -106,14 +112,16 @@ return {
                 source_map    = { type = "map", item_format = "dir", description = "source path remappings, from=to" },
                 init_commands = { type = "list", description = "LLDB commands run at debugger startup" },
             },
-            build = function(params, _, inputs)
-                params.name         = "lldb"
-                params.type         = "lldb-dap"
-                params.program      = inputs.program
-                params.waitFor      = inputs.wait_for
-                params.sourcePath   = inputs.source_path
-                params.sourceMap    = inputs.source_map
-                params.initCommands = inputs.init_commands
+            build = function(inputs)
+                return {
+                    name         = "lldb",
+                    type         = "lldb-dap",
+                    program      = inputs.program,
+                    waitFor      = inputs.wait_for,
+                    sourcePath   = inputs.source_path,
+                    sourceMap    = inputs.source_map,
+                    initCommands = inputs.init_commands,
+                }
             end,
         },
         core = {
@@ -125,13 +133,15 @@ return {
                 source_path = { type = "string", format = "dir", description = "source root to remap ./ to" },
                 source_map  = { type = "map", item_format = "dir", description = "source path remappings, from=to" },
             },
-            build = function(params, _, inputs)
-                params.name       = "lldb"
-                params.type       = "lldb-dap"
-                params.program    = inputs.program
-                params.coreFile   = inputs.corefile
-                params.sourcePath = inputs.source_path
-                params.sourceMap  = inputs.source_map
+            build = function(inputs)
+                return {
+                    name       = "lldb",
+                    type       = "lldb-dap",
+                    program    = inputs.program,
+                    coreFile   = inputs.corefile,
+                    sourcePath = inputs.source_path,
+                    sourceMap  = inputs.source_map,
+                }
             end,
         },
         gdb_remote = {
@@ -143,13 +153,15 @@ return {
                 source_path = { type = "string", format = "dir", description = "source root to remap ./ to" },
                 source_map  = { type = "map", item_format = "dir", description = "source path remappings, from=to" },
             },
-            build = function(params, _, inputs)
-                params.name               = "lldb"
-                params.type               = "lldb-dap"
-                params["gdb-remote-host"] = inputs.host
-                params["gdb-remote-port"] = inputs.port
-                params.sourcePath         = inputs.source_path
-                params.sourceMap          = inputs.source_map
+            build = function(inputs)
+                return {
+                    name                = "lldb",
+                    type                = "lldb-dap",
+                    ["gdb-remote-host"] = inputs.host,
+                    ["gdb-remote-port"] = inputs.port,
+                    sourcePath          = inputs.source_path,
+                    sourceMap           = inputs.source_map,
+                }
             end,
         },
     },

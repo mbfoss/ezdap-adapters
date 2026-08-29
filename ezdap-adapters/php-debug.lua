@@ -52,9 +52,10 @@ local function _inputs(extra)
     return vim.tbl_extend("error", vim.deepcopy(_common_inputs), extra)
 end
 
----@param params table
 ---@param inputs table<string, any>
-local function _common_build(params, inputs)
+---@return table params
+local function _common_body(inputs)
+    local params = {}
     params.port             = inputs.port
     params.hostname         = inputs.hostname
     params.pathMappings     = inputs.path_mappings
@@ -81,6 +82,7 @@ local function _common_build(params, inputs)
             key    = inputs.proxy_key,
         }
     end
+    return params
 end
 
 ---@type table<string, ezdap.Mode>
@@ -94,8 +96,9 @@ local _modes = {
         description = "wait for Xdebug to connect back on a port",
         request = "launch",
         inputs = _inputs {},
-        build = function(params, _, inputs)
-            _common_build(params, inputs)
+        build = function(inputs)
+            local params = _common_body(inputs)
+            return params
         end,
     },
     -- One `command` input carries the whole command line; `build` splits it into
@@ -115,8 +118,8 @@ local _modes = {
             runtime_args       = { type = "list", description = "arguments passed to php, e.g. -dxdebug.mode=debug,-dxdebug.start_with_request=yes" },
             console            = { type = "string", choices = { "internalConsole", "integratedTerminal", "externalTerminal" }, description = "where the debuggee's stdio goes" },
         },
-        build = function(params, _, inputs)
-            _common_build(params, inputs)
+        build = function(inputs)
+            local params = _common_body(inputs)
             params.program, params.args = require("ezdap.shared").split_command(inputs.command)
             params.cwd               = inputs.cwd
             params.env               = inputs.env
@@ -124,6 +127,7 @@ local _modes = {
             params.runtimeExecutable = inputs.runtime_executable
             params.runtimeArgs       = inputs.runtime_args
             params.console           = inputs.console
+            return params
         end,
     },
 }

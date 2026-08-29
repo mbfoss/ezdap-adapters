@@ -154,10 +154,12 @@ local function _inputs(...)
     return out
 end
 
----@param params table
 ---@param inputs table<string, any>
-local function _common_build(params, inputs)
+---@return table params
+local function _common_body(inputs)
+    local params = {}
     params.nonstop = not inputs.stop_on_entry
+    return params
 end
 
 ---The body and spawn description shared by `script`/`command`,
@@ -165,8 +167,8 @@ end
 ---@param params  table
 ---@param inputs  table<string, any>
 ---@param command_mode boolean
-local function _spawn_build(params, inputs, command_mode)
-    _common_build(params, inputs)
+local function _spawn_body(inputs, command_mode)
+    local params = _common_body(inputs)
     -- We started the debuggee ourselves, so its paths are this machine's paths.
     params.localfs = true
     local program, args = require("ezdap.shared").split_command(inputs.command)
@@ -179,6 +181,7 @@ local function _spawn_build(params, inputs, command_mode)
         rdbg_args    = inputs.rdbg_args,
         command_mode = command_mode,
     }
+    return params
 end
 
 ---@type table<string, ezdap.Mode>
@@ -191,8 +194,9 @@ local _modes = {
         inputs = _inputs(_spawn_inputs, {
             command = { type = "string", format = "command", required = true, description = "Ruby script to debug, plus its arguments" },
         }),
-        build = function(params, _, inputs)
-            _spawn_build(params, inputs, false)
+        build = function(inputs)
+            local params = _spawn_body(inputs, false)
+            return params
         end,
     },
     -- The same thing in rdbg's command mode, for the case the script form cannot
@@ -204,8 +208,9 @@ local _modes = {
         inputs = _inputs(_spawn_inputs, {
             command = { type = "string", format = "command", required = true, description = "command to debug, plus its arguments" },
         }),
-        build = function(params, _, inputs)
-            _spawn_build(params, inputs, true)
+        build = function(inputs)
+            local params = _spawn_body(inputs, true)
+            return params
         end,
     },
     -- Nothing is started here: the debuggee was opened elsewhere, with
@@ -221,8 +226,8 @@ local _modes = {
             local_fs      = { type = "boolean", description = "the debuggee shares this filesystem (default true)" },
             path_mappings = { type = "map", item_format = "dir", description = "source path mappings, remote=local" },
         },
-        build = function(params, _, inputs)
-            _common_build(params, inputs)
+        build = function(inputs)
+            local params = _common_body(inputs)
             if inputs.path_mappings then
                 -- The gem takes one string of "remote:local" pairs and matches by
                 -- prefix, first hit winning, so the longest prefix goes first —
@@ -237,6 +242,7 @@ local _modes = {
                 params.localfs = inputs.local_fs == nil and true or inputs.local_fs
             end
             params[RDBG_KEY] = { host = inputs.host, port = inputs.port }
+            return params
         end,
     },
 }

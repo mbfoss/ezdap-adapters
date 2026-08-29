@@ -40,27 +40,30 @@ local function _inputs(...)
     return out
 end
 
----@param params table
 ---@param inputs table<string, any>
-local function _source_build(params, inputs)
+---@return table params
+local function _source_body(inputs)
+    local params = {}
     params.sourceMaps                = inputs.source_maps
     params.sourceMapPathOverrides    = inputs.source_map_path_overrides
     params.resolveSourceMapLocations = inputs.resolve_source_map_locations
     params.outFiles                  = inputs.out_files
     params.skipFiles                 = inputs.skip_files
     params.smartStep                 = inputs.smart_step
+    return params
 end
 
----@param params table
 ---@param inputs table<string, any>
-local function _node_build(params, inputs)
-    _source_build(params, inputs)
+---@return table params
+local function _node_body(inputs)
+    local params = _source_body(inputs)
     params.type                     = "pwa-node"
     params.cwd                      = inputs.cwd
     params.env                      = inputs.env
     params.envFile                  = inputs.env_file
     params.restart                  = inputs.restart
     params.autoAttachChildProcesses = inputs.auto_attach_child_processes
+    return params
 end
 
 ---@type table<string, ezdap.Mode>
@@ -78,13 +81,14 @@ local _modes = {
             stop_on_entry      = { type = "boolean", description = "break at program entry" },
             console            = { type = "string", choices = { "internalConsole", "integratedTerminal", "externalTerminal" }, description = "where to run the debuggee" },
         }),
-        build = function(params, _, inputs)
-            _node_build(params, inputs)
+        build = function(inputs)
+            local params = _node_body(inputs)
             params.program, params.args = require("ezdap.shared").split_command(inputs.command)
             params.runtimeExecutable = inputs.runtime_executable
             params.runtimeArgs       = inputs.runtime_args
             params.stopOnEntry       = inputs.stop_on_entry
             params.console           = inputs.console
+            return params
         end,
     },
     -- Both attach modes are the same DAP request; they differ only in whether
@@ -97,13 +101,14 @@ local _modes = {
             attach_existing_children = { type = "boolean", description = "also attach to already-spawned child processes" },
             continue_on_attach       = { type = "boolean", description = "resume a program waiting on --inspect-brk" },
         }),
-        build = function(params, _, inputs)
+        build = function(inputs)
             local pid, err = require("ezdap.shared").resolve_pid(inputs.pid)
-            if not pid then return err end
-            _node_build(params, inputs)
+            if not pid then return nil, err end
+            local params = _node_body(inputs)
             params.processId              = pid
             params.attachExistingChildren = inputs.attach_existing_children
             params.continueOnAttach       = inputs.continue_on_attach
+            return params
         end,
     },
     -- `local_root`/`remote_root` map the remote machine's paths onto this one.
@@ -118,14 +123,15 @@ local _modes = {
             attach_existing_children = { type = "boolean", description = "also attach to already-spawned child processes" },
             continue_on_attach       = { type = "boolean", description = "resume a program waiting on --inspect-brk" },
         }),
-        build = function(params, _, inputs)
-            _node_build(params, inputs)
+        build = function(inputs)
+            local params = _node_body(inputs)
             params.address                = inputs.host
             params.port                   = inputs.port
             params.localRoot              = inputs.local_root
             params.remoteRoot             = inputs.remote_root
             params.attachExistingChildren = inputs.attach_existing_children
             params.continueOnAttach       = inputs.continue_on_attach
+            return params
         end,
     },
     -- The browser target: js-debug serves pwa-chrome from the same server, and
@@ -141,8 +147,8 @@ local _modes = {
             runtime_executable = { type = "string", description = "'stable', 'canary', or a path to the browser executable" },
             runtime_args       = { type = "list", description = "arguments passed to the browser" },
         },
-        build = function(params, _, inputs)
-            _source_build(params, inputs)
+        build = function(inputs)
+            local params = _source_body(inputs)
             params.type              = "pwa-chrome"
             params.url               = inputs.url
             params.webRoot           = inputs.web_root
@@ -150,6 +156,7 @@ local _modes = {
             params.userDataDir       = inputs.user_data_dir
             params.runtimeExecutable = inputs.runtime_executable
             params.runtimeArgs       = inputs.runtime_args
+            return params
         end,
     },
 }

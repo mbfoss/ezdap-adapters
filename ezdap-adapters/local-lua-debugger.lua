@@ -57,9 +57,10 @@ local function _inputs(...)
 end
 
 ---Assigns everything outside `program`, which each mode fills in itself.
----@param params table
 ---@param inputs table<string, any>
-local function _common_build(params, inputs)
+---@return table params
+local function _common_body(inputs)
+    local params = {}
     params.type              = "lua-local"
     params.name              = "Debug"
     params.cwd               = inputs.cwd
@@ -71,6 +72,7 @@ local function _common_build(params, inputs)
     params.breakInCoroutines = inputs.break_in_coroutines
     params.stopOnEntry       = inputs.stop_on_entry
     params.verbose           = inputs.verbose
+    return params
 end
 
 ---@type table<string, ezdap.Mode>
@@ -84,8 +86,8 @@ local _modes = {
             command = { type = "string", format = "command", required = true, description = "script to debug, plus its arguments" },
             lua     = { type = "string", description = "Lua interpreter to run the script with (default lua)" },
         },
-        build = function(params, _, inputs)
-            _common_build(params, inputs)
+        build = function(inputs)
+            local params = _common_body(inputs)
             -- The script goes inside `program`, not beside it, so the pair is
             -- split off first rather than assigned straight to the body.
             local file, args = require("ezdap.shared").split_command(inputs.command)
@@ -95,6 +97,7 @@ local _modes = {
                 communication = inputs.communication or "stdio",
             }
             params.args = args
+            return params
         end,
     },
     -- The custom-command shape: an executable that embeds Lua drives the session
@@ -105,14 +108,15 @@ local _modes = {
         inputs = _inputs {
             command = { type = "string", format = "command", required = true, description = "custom command to run, plus its arguments" },
         },
-        build = function(params, _, inputs)
-            _common_build(params, inputs)
+        build = function(inputs)
+            local params = _common_body(inputs)
             local cmd, args = require("ezdap.shared").split_command(inputs.command)
             params.program = {
                 command       = cmd,
                 communication = inputs.communication or "stdio",
             }
             params.args = args
+            return params
         end,
     },
 }

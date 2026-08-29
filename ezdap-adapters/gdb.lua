@@ -137,13 +137,17 @@ return {
                 stop_at_main  = { type = "boolean", description = "break at the start of main" },
                 ada_charset   = { type = "string", description = "Ada source character set" },
             },
-            build = function(params, _, inputs)
-                params.program, params.args = require("ezdap.shared").split_command(inputs.command)
-                params.cwd     = inputs.cwd
-                params.env     = vim.tbl_extend("force", vim.fn.environ(), inputs.env or {}) -- gdb does not merge env variables on it's own (unlike lldb)
-                params.stopOnEntry = inputs.stop_on_entry
-                params.stopAtBeginningOfMainSubprogram = inputs.stop_at_main
-                params.adaSourceCharset = inputs.ada_charset
+            build = function(inputs)
+                local program, args = require("ezdap.shared").split_command(inputs.command)
+                return {
+                    program                         = program,
+                    args                            = args,
+                    cwd                             = inputs.cwd,
+                    env                             = vim.tbl_extend("force", vim.fn.environ(), inputs.env or {}), -- gdb does not merge env variables on it's own (unlike lldb)
+                    stopOnEntry                     = inputs.stop_on_entry,
+                    stopAtBeginningOfMainSubprogram = inputs.stop_at_main,
+                    adaSourceCharset                = inputs.ada_charset,
+                }
             end,
         },
         attach = {
@@ -153,11 +157,13 @@ return {
                 pid    = { type = "integer", description = "process id to attach to" },
                 program = { type = "string", format = "file", description = "local binary for symbols" },
             },
-            build = function(params, _, inputs)
+            build = function(inputs)
                 local pid, err = require("ezdap.shared").resolve_pid(inputs.pid)
-                if not pid then return err end
-                params.pid     = pid
-                params.program = inputs.program
+                if not pid then return nil, err end
+                return {
+                    pid     = pid,
+                    program = inputs.program,
+                }
             end,
         },
         -- GDB's body `target` key is the remote connection string, not a binary.
@@ -168,9 +174,11 @@ return {
                 connection = { type = "string", required = true, description = "remote target, e.g. host:port" },
                 program    = { type = "string", format = "file", description = "local binary for symbols" },
             },
-            build = function(params, _, inputs)
-                params.target  = inputs.connection
-                params.program = inputs.program
+            build = function(inputs)
+                return {
+                    target  = inputs.connection,
+                    program = inputs.program,
+                }
             end,
         },
         -- Gated on CORE_MIN by `setup`; use the `lldb` or `codelldb` adapter's `core`
@@ -182,9 +190,11 @@ return {
                 corefile = { type = "string", format = "file", required = true, description = "core file to load" },
                 program  = { type = "string", format = "file", description = "executable that produced the core" },
             },
-            build = function(params, _, inputs)
-                params.coreFile = inputs.corefile
-                params.program  = inputs.program
+            build = function(inputs)
+                return {
+                    coreFile = inputs.corefile,
+                    program  = inputs.program,
+                }
             end,
         },
     },
