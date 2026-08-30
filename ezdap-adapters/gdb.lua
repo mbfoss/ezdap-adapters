@@ -25,11 +25,11 @@ local GDB = gdb_bin or gdb_bins[1]
 -- `coreFile` is a post-17.2 addition to gdb's DAP attach: an older gdb drops it
 -- and fails the attach with the unhelpful "attach requires either 'pid' or
 -- 'target'", so the `core` mode checks the version up front instead.
-local CORE_MIN = { 17, 2 } -- exclusive: 17.2 itself is too old
+local CORE_MIN = { 17, 3 }
 
 -- `--interpreter=dap` is gdb 14.1 and newer; an older gdb exits with
 -- "Interpreter `dap' unrecognized" the moment the session starts.
-local DAP_MIN = { 14, 1 } -- inclusive
+local DAP_MIN = { 14, 1 }
 
 ---gdb's version as `{major, minor}`, parsed from the tail of `gdb --version`'s
 ---first line ("GNU gdb (GDB) 17.2", "GNU gdb (Ubuntu 12.1-0ubuntu1~22.04) 12.1").
@@ -118,7 +118,7 @@ return {
         config.command = vim.list_extend({ exe }, flags)
         -- A raw task names no mode, so it is on its own here: nothing to gate on.
         if ctx.mode == "core" and _cmp(version, CORE_MIN) <= 0 then
-            return callback(("%s is gdb %s; core files need one newer than %s")
+            return callback(("%s is gdb %s; core files need %s or newer")
                 :format(exe, _fmt(version), _fmt(CORE_MIN)))
         end
         callback()
@@ -181,10 +181,8 @@ return {
                 }
             end,
         },
-        -- Gated on CORE_MIN by `setup`; use the `lldb` or `codelldb` adapter's `core`
-        -- mode on an older gdb.
         core = {
-            description = "post-mortem debug from a core file (needs gdb newer than 17.2)",
+            description = "post-mortem debug from a core file",
             request    = "attach",
             inputs = {
                 corefile = { type = "string", format = "file", required = true, description = "core file to load" },
