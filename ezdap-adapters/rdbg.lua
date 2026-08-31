@@ -171,11 +171,12 @@ local function _spawn_body(inputs, command_mode)
     local params = _common_body(inputs)
     -- We started the debuggee ourselves, so its paths are this machine's paths.
     params.localfs = true
-    local program, args = require("ezdap.shared").split_command(inputs.command)
+    local shared = require("ezdap.shared")
+    local program, args = shared.split_command(inputs.command)
     params[RDBG_KEY] = {
         program      = program,
         args         = args,
-        cwd          = inputs.cwd,
+        cwd          = shared.normalize_path(inputs.cwd),
         env          = inputs.env,
         use_bundler  = inputs.use_bundler,
         rdbg_args    = inputs.rdbg_args,
@@ -227,21 +228,25 @@ local _modes = {
             path_mappings = { type = "map", completion = "dir", description = "source path mappings, remote=local" },
         },
         build = function(inputs)
+            local shared = require("ezdap.shared")
+            local port, err = shared.resolve_port(inputs.port)
+            if err then return nil, err end
             local params = _common_body(inputs)
-            if inputs.path_mappings then
+            local path_mappings = shared.normalize_path(inputs.path_mappings)
+            if path_mappings then
                 -- The gem takes one string of "remote:local" pairs and matches by
                 -- prefix, first hit winning, so the longest prefix goes first —
                 -- otherwise a mapping for a parent directory shadows its children.
-                local remotes = vim.tbl_keys(inputs.path_mappings)
+                local remotes = vim.tbl_keys(path_mappings)
                 table.sort(remotes, function(a, b) return #a > #b end)
                 local pairs_ = vim.tbl_map(function(remote)
-                    return remote .. ":" .. inputs.path_mappings[remote]
+                    return remote .. ":" .. path_mappings[remote]
                 end, remotes)
                 params.localfsMap = table.concat(pairs_, ",")
             else
                 params.localfs = inputs.local_fs == nil and true or inputs.local_fs
             end
-            params[RDBG_KEY] = { host = inputs.host, port = inputs.port }
+            params[RDBG_KEY] = { host = inputs.host, port = port }
             return params
         end,
     },

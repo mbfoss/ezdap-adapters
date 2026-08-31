@@ -52,13 +52,20 @@ local function _inputs(extra)
     return vim.tbl_extend("error", vim.deepcopy(_common_inputs), extra)
 end
 
+---Both ports are held to their range here, so every mode's `build` reports a bad
+---one the same way — the `nil, err` pair an abort returns.
 ---@param inputs table<string, any>
----@return table params
+---@return table? params, string? err
 local function _common_body(inputs)
+    local shared = require("ezdap.shared")
+    local port, err = shared.resolve_port(inputs.port)
+    if err then return nil, err end
+    local proxy_port, proxy_err = shared.resolve_port(inputs.proxy_port)
+    if proxy_err then return nil, proxy_err end
     local params = {}
-    params.port             = inputs.port
+    params.port             = port
     params.hostname         = inputs.hostname
-    params.pathMappings     = inputs.path_mappings
+    params.pathMappings     = shared.normalize_path(inputs.path_mappings)
     params.stopOnEntry      = inputs.stop_on_entry
     params.ignore           = inputs.ignore
     params.ignoreExceptions = inputs.ignore_exceptions
@@ -78,7 +85,7 @@ local function _common_body(inputs)
         params.proxy = {
             enable = true,
             host   = inputs.proxy_host,
-            port   = inputs.proxy_port,
+            port   = proxy_port,
             key    = inputs.proxy_key,
         }
     end
@@ -97,7 +104,8 @@ local _modes = {
         request = "launch",
         inputs = _inputs {},
         build = function(inputs)
-            local params = _common_body(inputs)
+            local params, err = _common_body(inputs)
+            if not params then return nil, err end
             return params
         end,
     },
@@ -119,11 +127,13 @@ local _modes = {
             console            = { type = "string", completion = { "internalConsole", "integratedTerminal", "externalTerminal" }, description = "where the debuggee's stdio goes" },
         },
         build = function(inputs)
-            local params = _common_body(inputs)
-            params.program, params.args = require("ezdap.shared").split_command(inputs.command)
-            params.cwd               = inputs.cwd
+            local shared = require("ezdap.shared")
+            local params, err = _common_body(inputs)
+            if not params then return nil, err end
+            params.program, params.args = shared.split_command(inputs.command)
+            params.cwd               = shared.normalize_path(inputs.cwd)
             params.env               = inputs.env
-            params.envFile           = inputs.env_file
+            params.envFile           = shared.normalize_path(inputs.env_file)
             params.runtimeExecutable = inputs.runtime_executable
             params.runtimeArgs       = inputs.runtime_args
             params.console           = inputs.console
