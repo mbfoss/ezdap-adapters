@@ -51,31 +51,32 @@ return {
             description = "debug an executable",
             request = "launch",
             inputs = {
-                command         = { type = "string", format = "command", required = true, description = "command line to debug" },
-                cwd             = { type = "string", format = "dir", description = "working directory" },
+                command         = { type = "string", completion = "command", required = true, description = "command line to debug" },
+                cwd             = { type = "string", completion = "dir", description = "working directory" },
                 env             = { type = "map", description = "environment variables" },
                 stop_on_entry   = { type = "boolean", description = "break at program entry" },
-                console         = { type = "string", choices = { "internalConsole", "integratedTerminal", "externalTerminal" }, description = "where to run" },
+                console         = { type = "string", completion = { "internalConsole", "integratedTerminal", "externalTerminal" }, description = "where to run" },
                 run_in_terminal = { type = "boolean", description = "run the debuggee in a terminal (default true)" },
-                source_path     = { type = "string", format = "dir", description = "source root to remap ./ to" },
-                source_map      = { type = "map", item_format = "dir", description = "source path remappings, from=to" },
+                source_path     = { type = "string", completion = "dir", description = "source root to remap ./ to" },
+                source_map      = { type = "map", completion = "dir", description = "source path remappings, from=to" },
                 init_commands   = { type = "list", description = "LLDB commands run at debugger startup" },
             },
             build = function(inputs)
-                local program, args = require("ezdap.shared").split_command(inputs.command)
+                local shared = require("ezdap.shared")
+                local program, args = shared.split_command(inputs.command)
                 return {
                     name          = "lldb",
                     type          = "lldb-dap",
                     program       = program,
                     args          = args,
-                    cwd           = inputs.cwd,
+                    cwd           = shared.normalize_path(inputs.cwd),
                     env           = inputs.env,
                     stopOnEntry   = inputs.stop_on_entry,
                     console       = inputs.console,
                     -- Unset means the default, so only an explicit false turns it off.
                     runInTerminal = inputs.run_in_terminal ~= false,
-                    sourcePath    = inputs.source_path,
-                    sourceMap     = inputs.source_map,
+                    sourcePath    = shared.normalize_path(inputs.source_path),
+                    sourceMap     = shared.normalize_path(inputs.source_map),
                     initCommands  = inputs.init_commands,
                 }
             end,
@@ -85,19 +86,20 @@ return {
             request = "attach",
             inputs = {
                 pid           = { type = "integer", description = "process id to attach to" },
-                source_path   = { type = "string", format = "dir", description = "source root to remap ./ to" },
-                source_map    = { type = "map", item_format = "dir", description = "source path remappings, from=to" },
+                source_path   = { type = "string", completion = "dir", description = "source root to remap ./ to" },
+                source_map    = { type = "map", completion = "dir", description = "source path remappings, from=to" },
                 init_commands = { type = "list", description = "LLDB commands run at debugger startup" },
             },
             build = function(inputs)
-                local pid, err = require("ezdap.shared").resolve_pid(inputs.pid)
+                local shared = require("ezdap.shared")
+                local pid, err = shared.resolve_pid(inputs.pid)
                 if not pid then return nil, err end
                 return {
                     name         = "lldb",
                     type         = "lldb-dap",
                     pid          = pid,
-                    sourcePath   = inputs.source_path,
-                    sourceMap    = inputs.source_map,
+                    sourcePath   = shared.normalize_path(inputs.source_path),
+                    sourceMap    = shared.normalize_path(inputs.source_map),
                     initCommands = inputs.init_commands,
                 }
             end,
@@ -106,20 +108,21 @@ return {
             description = "attach to a process by executable, optionally waiting for it to launch",
             request = "attach",
             inputs = {
-                program       = { type = "string", format = "file", required = true, description = "executable to attach to" },
+                program       = { type = "string", completion = "file", required = true, description = "executable to attach to" },
                 wait_for      = { type = "boolean", description = "wait for the process to launch" },
-                source_path   = { type = "string", format = "dir", description = "source root to remap ./ to" },
-                source_map    = { type = "map", item_format = "dir", description = "source path remappings, from=to" },
+                source_path   = { type = "string", completion = "dir", description = "source root to remap ./ to" },
+                source_map    = { type = "map", completion = "dir", description = "source path remappings, from=to" },
                 init_commands = { type = "list", description = "LLDB commands run at debugger startup" },
             },
             build = function(inputs)
+                local shared = require("ezdap.shared")
                 return {
                     name         = "lldb",
                     type         = "lldb-dap",
-                    program      = inputs.program,
+                    program      = shared.normalize_path(inputs.program),
                     waitFor      = inputs.wait_for,
-                    sourcePath   = inputs.source_path,
-                    sourceMap    = inputs.source_map,
+                    sourcePath   = shared.normalize_path(inputs.source_path),
+                    sourceMap    = shared.normalize_path(inputs.source_map),
                     initCommands = inputs.init_commands,
                 }
             end,
@@ -128,19 +131,20 @@ return {
             description = "post-mortem debug from a core file",
             request = "attach",
             inputs = {
-                corefile    = { type = "string", format = "file", required = true, description = "core file to load" },
-                program     = { type = "string", format = "file", description = "executable that produced the core" },
-                source_path = { type = "string", format = "dir", description = "source root to remap ./ to" },
-                source_map  = { type = "map", item_format = "dir", description = "source path remappings, from=to" },
+                corefile    = { type = "string", completion = "file", required = true, description = "core file to load" },
+                program     = { type = "string", completion = "file", description = "executable that produced the core" },
+                source_path = { type = "string", completion = "dir", description = "source root to remap ./ to" },
+                source_map  = { type = "map", completion = "dir", description = "source path remappings, from=to" },
             },
             build = function(inputs)
+                local shared = require("ezdap.shared")
                 return {
                     name       = "lldb",
                     type       = "lldb-dap",
-                    program    = inputs.program,
-                    coreFile   = inputs.corefile,
-                    sourcePath = inputs.source_path,
-                    sourceMap  = inputs.source_map,
+                    program    = shared.normalize_path(inputs.program),
+                    coreFile   = shared.normalize_path(inputs.corefile),
+                    sourcePath = shared.normalize_path(inputs.source_path),
+                    sourceMap  = shared.normalize_path(inputs.source_map),
                 }
             end,
         },
@@ -148,19 +152,22 @@ return {
             description = "attach over a gdb-remote (gdbserver) connection",
             request = "attach",
             inputs = {
-                port        = { type = "integer", format = "port", required = true, description = "gdbserver port" },
+                port        = { type = "integer", required = true, description = "gdbserver port" },
                 host        = { type = "string", description = "gdbserver host" },
-                source_path = { type = "string", format = "dir", description = "source root to remap ./ to" },
-                source_map  = { type = "map", item_format = "dir", description = "source path remappings, from=to" },
+                source_path = { type = "string", completion = "dir", description = "source root to remap ./ to" },
+                source_map  = { type = "map", completion = "dir", description = "source path remappings, from=to" },
             },
             build = function(inputs)
+                local shared = require("ezdap.shared")
+                local port, err = shared.resolve_port(inputs.port)
+                if err then return nil, err end
                 return {
                     name                = "lldb",
                     type                = "lldb-dap",
                     ["gdb-remote-host"] = inputs.host,
-                    ["gdb-remote-port"] = inputs.port,
-                    sourcePath          = inputs.source_path,
-                    sourceMap           = inputs.source_map,
+                    ["gdb-remote-port"] = port,
+                    sourcePath          = shared.normalize_path(inputs.source_path),
+                    sourceMap           = shared.normalize_path(inputs.source_map),
                 }
             end,
         },

@@ -34,10 +34,10 @@ local function _lua_path(dir) return vim.fs.joinpath(dir, "debugger", "?.lua") .
 ---Fields both launch shapes accept, alongside their own `program` variant.
 ---@type table<string, ezdap.Input>
 local _common_inputs = {
-    cwd                 = { type = "string", format = "dir", description = "working directory" },
+    cwd                 = { type = "string", completion = "dir", description = "working directory" },
     env                 = { type = "map", description = "environment variables" },
-    communication       = { type = "string", choices = { "stdio", "pipe" }, description = "adapter transport" },
-    script_roots        = { type = "list", item_format = "dir", description = "alternate paths to find Lua scripts in" },
+    communication       = { type = "string", completion = { "stdio", "pipe" }, description = "adapter transport" },
+    script_roots        = { type = "list", completion = "dir", description = "alternate paths to find Lua scripts in" },
     script_files        = { type = "list", description = "globs of scripts to debug (needed for source-mapped breakpoints)" },
     ignore_patterns     = { type = "list", description = "Lua patterns matching scripts to skip when stepping" },
     step_unmapped_lines = { type = "boolean", description = "step into Lua when a source-mapped line has no mapping" },
@@ -60,12 +60,13 @@ end
 ---@param inputs table<string, any>
 ---@return table params
 local function _common_body(inputs)
+    local shared = require("ezdap.shared")
     local params = {}
     params.type              = "lua-local"
     params.name              = "Debug"
-    params.cwd               = inputs.cwd
+    params.cwd               = shared.normalize_path(inputs.cwd)
     params.env               = inputs.env
-    params.scriptRoots       = inputs.script_roots
+    params.scriptRoots       = shared.normalize_path(inputs.script_roots)
     params.scriptFiles       = inputs.script_files
     params.ignorePatterns    = inputs.ignore_patterns
     params.stepUnmappedLines = inputs.step_unmapped_lines
@@ -83,7 +84,7 @@ local _modes = {
         description = "debug a Lua script",
         request = "launch",
         inputs = _inputs {
-            command = { type = "string", format = "command", required = true, description = "script to debug, plus its arguments" },
+            command = { type = "string", completion = "command", required = true, description = "script to debug, plus its arguments" },
             lua     = { type = "string", description = "Lua interpreter to run the script with (default lua)" },
         },
         build = function(inputs)
@@ -106,7 +107,7 @@ local _modes = {
         description = "debug a custom executable that embeds Lua",
         request = "launch",
         inputs = _inputs {
-            command = { type = "string", format = "command", required = true, description = "custom command to run, plus its arguments" },
+            command = { type = "string", completion = "command", required = true, description = "custom command to run, plus its arguments" },
         },
         build = function(inputs)
             local params = _common_body(inputs)

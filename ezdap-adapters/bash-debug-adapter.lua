@@ -38,17 +38,18 @@ return {
             description = "debug a bash script",
             request = "launch",
             inputs = {
-                script        = { type = "string", format = "file", description = "bash script to debug" },
-                cwd           = { type = "string", format = "dir", description = "working directory" },
+                script        = { type = "string", completion = "file", description = "bash script to debug" },
+                cwd           = { type = "string", completion = "dir", description = "working directory" },
                 env           = { type = "map", description = "environment variables" },
-                terminal_kind = { type = "string", choices = { "integrated", "external", "debugConsole" }, description = "where the debuggee's stdio goes (default integrated)" },
+                terminal_kind = { type = "string", completion = { "integrated", "external", "debugConsole" }, description = "where the debuggee's stdio goes (default integrated)" },
             },
             build = function(inputs)
+                local shared = require("ezdap.shared")
                 return {
                     type          = "bashdb",
                     name          = "Launch Bash Script",
-                    program       = inputs.script,
-                    cwd           = inputs.cwd,
+                    program       = shared.normalize_path(inputs.script),
+                    cwd           = shared.normalize_path(inputs.cwd),
                     env           = inputs.env,
                     pathBash      = bash_tools.bash,
                     pathBashdb    = bash_tools.bashdb,

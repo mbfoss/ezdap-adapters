@@ -56,19 +56,20 @@ return {
             description = "debug a .NET assembly",
             request = "launch",
             inputs = {
-                command               = { type = "string", format = "command", required = true, description = "assembly or executable to debug, plus its arguments" },
-                cwd                   = { type = "string", format = "dir", description = "working directory" },
+                command               = { type = "string", completion = "command", required = true, description = "assembly or executable to debug, plus its arguments" },
+                cwd                   = { type = "string", completion = "dir", description = "working directory" },
                 env                   = { type = "map", description = "environment variables" },
                 stop_at_entry         = { type = "boolean", description = "break at program entry" },
                 just_my_code          = { type = "boolean", description = "debug only user code, skipping framework code (default true)" },
                 enable_step_filtering = { type = "boolean", description = "step over property accessors and operators (default true)" },
             },
             build = function(inputs)
-                local program, args = require("ezdap.shared").split_command(inputs.command)
+                local shared = require("ezdap.shared")
+                local program, args = shared.split_command(inputs.command)
                 return {
                     program             = program,
                     args                = args,
-                    cwd                 = inputs.cwd,
+                    cwd                 = shared.normalize_path(inputs.cwd),
                     env                 = inputs.env,
                     stopAtEntry         = inputs.stop_at_entry,
                     justMyCode          = inputs.just_my_code,

@@ -93,7 +93,7 @@ end
 
 ---@type table<string, ezdap.Input>
 local _any_mode_inputs = {
-    dlv_cwd         = { type = "string", format = "dir", description = "working directory for the delve server itself" },
+    dlv_cwd         = { type = "string", completion = "dir", description = "working directory for the delve server itself" },
     env             = { type = "map", description = "environment variables for the debuggee" },
     substitute_path = { type = "map", description = "source path remappings, from=to" },
 }
@@ -101,9 +101,9 @@ local _any_mode_inputs = {
 ---Fields every mode that runs a process accepts (`exec`, and so `debug`/`test`).
 ---@type table<string, ezdap.Input>
 local _process_inputs = {
-    command  = { type = "string", format = "command", required = true, description = "command line to debug (package or binary, plus args)" },
-    cwd      = { type = "string", format = "dir", description = "working directory for the debuggee" },
-    backend  = { type = "string", choices = { "default", "native", "lldb", "rr" }, description = "debugger backend" },
+    command  = { type = "string", completion = "command", required = true, description = "command line to debug (package or binary, plus args)" },
+    cwd      = { type = "string", completion = "dir", description = "working directory for the debuggee" },
+    backend  = { type = "string", completion = { "default", "native", "lldb", "rr" }, description = "debugger backend" },
     no_debug = { type = "boolean", description = "run the program without debugging it" },
 }
 
@@ -111,7 +111,7 @@ local _process_inputs = {
 ---@type table<string, ezdap.Input>
 local _build_inputs = {
     build_flags            = { type = "string", description = "flags passed to the Go compiler" },
-    output                 = { type = "string", format = "file", description = "path for the compiled binary" },
+    output                 = { type = "string", completion = "file", description = "path for the compiled binary" },
     stop_on_entry          = { type = "boolean", description = "break at program entry" },
     stack_trace_depth      = { type = "integer", description = "maximum stack trace depth" },
     show_global_variables  = { type = "boolean", description = "show package-level variables among the scopes" },
@@ -137,7 +137,7 @@ end
 ---@return table params
 local function _any_mode_body(inputs)
     local params = {}
-    params.dlvCwd = inputs.dlv_cwd
+    params.dlvCwd = require("ezdap.shared").normalize_path(inputs.dlv_cwd)
     params.env    = inputs.env
     -- delve wants a list of {from, to} pairs, not a flat mapping.
     if inputs.substitute_path then
@@ -153,9 +153,10 @@ end
 ---@param inputs table<string, any>
 ---@return table params
 local function _process_body(inputs)
+    local shared = require("ezdap.shared")
     local params = _any_mode_body(inputs)
-    params.program, params.args = require("ezdap.shared").split_command(inputs.command)
-    params.cwd                  = inputs.cwd
+    params.program, params.args = shared.split_command(inputs.command)
+    params.cwd                  = shared.normalize_path(inputs.cwd)
     params.backend              = inputs.backend
     params.noDebug              = inputs.no_debug
     return params
@@ -166,7 +167,7 @@ end
 local function _build_body(inputs)
     local params = _process_body(inputs)
     params.buildFlags           = inputs.build_flags
-    params.output               = inputs.output
+    params.output               = require("ezdap.shared").normalize_path(inputs.output)
     params.stopOnEntry          = inputs.stop_on_entry
     params.stackTraceDepth      = inputs.stack_trace_depth
     params.showGlobalVariables  = inputs.show_global_variables
@@ -223,14 +224,15 @@ return {
             description = "replay an rr trace recording",
             request = "launch",
             inputs = _inputs {
-                program        = { type = "string", format = "file", required = true, description = "binary the trace was recorded from" },
-                trace_dir_path = { type = "string", format = "dir", required = true, description = "rr trace directory to replay" },
+                program        = { type = "string", completion = "file", required = true, description = "binary the trace was recorded from" },
+                trace_dir_path = { type = "string", completion = "dir", required = true, description = "rr trace directory to replay" },
             },
             build = function(inputs)
+                local shared = require("ezdap.shared")
                 local params = _any_mode_body(inputs)
                 params.mode = "replay"
-                params.program      = inputs.program
-                params.traceDirPath = inputs.trace_dir_path
+                params.program      = shared.normalize_path(inputs.program)
+                params.traceDirPath = shared.normalize_path(inputs.trace_dir_path)
                 return params
             end,
         },
@@ -238,14 +240,15 @@ return {
             description = "post-mortem debug from a core dump",
             request = "launch",
             inputs = _inputs {
-                program       = { type = "string", format = "file", required = true, description = "binary that produced the core" },
-                corefile_path = { type = "string", format = "file", required = true, description = "core dump to load" },
+                program       = { type = "string", completion = "file", required = true, description = "binary that produced the core" },
+                corefile_path = { type = "string", completion = "file", required = true, description = "core dump to load" },
             },
             build = function(inputs)
+                local shared = require("ezdap.shared")
                 local params = _any_mode_body(inputs)
                 params.mode = "core"
-                params.program      = inputs.program
-                params.corefilePath = inputs.corefile_path
+                params.program      = shared.normalize_path(inputs.program)
+                params.corefilePath = shared.normalize_path(inputs.corefile_path)
                 return params
             end,
         },
@@ -257,7 +260,7 @@ return {
             request = "attach",
             inputs = {
                 pid     = { type = "integer", description = "process id to attach to" },
-                backend = { type = "string", choices = { "default", "native", "lldb", "rr" }, description = "debugger backend" },
+                backend = { type = "string", completion = { "default", "native", "lldb", "rr" }, description = "debugger backend" },
             },
             build = function(inputs)
                 local pid, err = require("ezdap.shared").resolve_pid(inputs.pid)

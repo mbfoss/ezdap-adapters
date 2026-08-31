@@ -130,19 +130,20 @@ return {
             description = "debug a native executable",
             request = "launch",
             inputs = {
-                command       = { type = "string", format = "command", required = true, description = "command line to debug" },
-                cwd           = { type = "string", format = "dir", description = "working directory" },
+                command       = { type = "string", completion = "command", required = true, description = "command line to debug" },
+                cwd           = { type = "string", completion = "dir", description = "working directory" },
                 env           = { type = "map", description = "environment variables" },
                 stop_on_entry = { type = "boolean", description = "break at program entry" },
                 stop_at_main  = { type = "boolean", description = "break at the start of main" },
                 ada_charset   = { type = "string", description = "Ada source character set" },
             },
             build = function(inputs)
-                local program, args = require("ezdap.shared").split_command(inputs.command)
+                local shared = require("ezdap.shared")
+                local program, args = shared.split_command(inputs.command)
                 return {
                     program                         = program,
                     args                            = args,
-                    cwd                             = inputs.cwd,
+                    cwd                             = shared.normalize_path(inputs.cwd),
                     env                             = vim.tbl_extend("force", vim.fn.environ(), inputs.env or {}), -- gdb does not merge env variables on it's own (unlike lldb)
                     stopOnEntry                     = inputs.stop_on_entry,
                     stopAtBeginningOfMainSubprogram = inputs.stop_at_main,
@@ -155,14 +156,15 @@ return {
             request    = "attach",
             inputs = {
                 pid    = { type = "integer", description = "process id to attach to" },
-                program = { type = "string", format = "file", description = "local binary for symbols" },
+                program = { type = "string", completion = "file", description = "local binary for symbols" },
             },
             build = function(inputs)
-                local pid, err = require("ezdap.shared").resolve_pid(inputs.pid)
+                local shared = require("ezdap.shared")
+                local pid, err = shared.resolve_pid(inputs.pid)
                 if not pid then return nil, err end
                 return {
                     pid     = pid,
-                    program = inputs.program,
+                    program = shared.normalize_path(inputs.program),
                 }
             end,
         },
@@ -172,12 +174,12 @@ return {
             request    = "attach",
             inputs = {
                 connection = { type = "string", required = true, description = "remote target, e.g. host:port" },
-                program    = { type = "string", format = "file", description = "local binary for symbols" },
+                program    = { type = "string", completion = "file", description = "local binary for symbols" },
             },
             build = function(inputs)
                 return {
                     target  = inputs.connection,
-                    program = inputs.program,
+                    program = require("ezdap.shared").normalize_path(inputs.program),
                 }
             end,
         },
@@ -185,13 +187,14 @@ return {
             description = "post-mortem debug from a core file",
             request    = "attach",
             inputs = {
-                corefile = { type = "string", format = "file", required = true, description = "core file to load" },
-                program  = { type = "string", format = "file", description = "executable that produced the core" },
+                corefile = { type = "string", completion = "file", required = true, description = "core file to load" },
+                program  = { type = "string", completion = "file", description = "executable that produced the core" },
             },
             build = function(inputs)
+                local shared = require("ezdap.shared")
                 return {
-                    coreFile = inputs.corefile,
-                    program  = inputs.program,
+                    coreFile = shared.normalize_path(inputs.corefile),
+                    program  = shared.normalize_path(inputs.program),
                 }
             end,
         },

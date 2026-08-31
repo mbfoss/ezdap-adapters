@@ -9,11 +9,11 @@ local codelldb_bin = "codelldb"
 ---merged into every mode, so a field is described in one place.
 ---@type table<string, ezdap.Input>
 local _common_inputs = {
-    source_map             = { type = "map", item_format = "dir", description = "source path remappings, from=to" },
-    relative_path_base     = { type = "string", format = "dir", description = "base directory for relative source paths" },
+    source_map             = { type = "map", completion = "dir", description = "source path remappings, from=to" },
+    relative_path_base     = { type = "string", completion = "dir", description = "base directory for relative source paths" },
     source_languages       = { type = "list", description = "source languages in the program, for language-specific features" },
-    expressions            = { type = "string", choices = { "simple", "python", "native" }, description = "default expression evaluator" },
-    breakpoint_mode        = { type = "string", choices = { "path", "file" }, description = "how source breakpoints resolve" },
+    expressions            = { type = "string", completion = { "simple", "python", "native" }, description = "default expression evaluator" },
+    breakpoint_mode        = { type = "string", completion = { "path", "file" }, description = "how source breakpoints resolve" },
     reverse_debugging      = { type = "boolean", description = "enable reverse debugging" },
     init_commands          = { type = "list", description = "LLDB commands run at debugger startup, before the target exists" },
     pre_run_commands       = { type = "list", description = "LLDB commands run just before launching/attaching" },
@@ -26,7 +26,9 @@ local _common_inputs = {
 ---with spaces survives LLDB's own word splitting.
 ---@param path string
 ---@return string
-local function _quoted(path) return '"' .. path .. '"' end
+local function _quoted(path)
+    return '"' .. require("ezdap.shared").normalize_path(path) .. '"'
+end
 
 ---A mode's own inputs on top of the common set.
 ---@param extra table<string, ezdap.Input>
@@ -39,11 +41,12 @@ end
 ---@param inputs table<string, any>
 ---@return table params
 local function _common_body(inputs)
+    local shared = require("ezdap.shared")
     local params = {}
     params.name                 = "codelldb"
     params.type                 = "lldb"
-    params.sourceMap            = inputs.source_map
-    params.relativePathBase     = inputs.relative_path_base
+    params.sourceMap            = shared.normalize_path(inputs.source_map)
+    params.relativePathBase     = shared.normalize_path(inputs.relative_path_base)
     params.sourceLanguages      = inputs.source_languages
     params.expressions          = inputs.expressions
     params.breakpointMode       = inputs.breakpoint_mode
@@ -66,20 +69,21 @@ return {
             description = "debug an executable",
             request = "launch",
             inputs = _inputs {
-                command       = { type = "string", format = "command", required = true, description = "command line to debug" },
-                cwd           = { type = "string", format = "dir", description = "working directory" },
+                command       = { type = "string", completion = "command", required = true, description = "command line to debug" },
+                cwd           = { type = "string", completion = "dir", description = "working directory" },
                 env           = { type = "map", description = "environment variables, added to the inherited ones" },
-                env_file      = { type = "string", format = "file", description = "file of additional environment variables" },
+                env_file      = { type = "string", completion = "file", description = "file of additional environment variables" },
                 stdio         = { type = "list", description = "redirections for stdin, stdout, stderr, in that order" },
-                terminal      = { type = "string", choices = { "console", "integrated", "external" }, description = "where the debuggee's stdio goes" },
+                terminal      = { type = "string", completion = { "console", "integrated", "external" }, description = "where the debuggee's stdio goes" },
                 stop_on_entry = { type = "boolean", description = "break at program entry" },
             },
             build = function(inputs)
+                local shared = require("ezdap.shared")
                 local params = _common_body(inputs)
-                params.program, params.args = require("ezdap.shared").split_command(inputs.command)
-                params.cwd         = inputs.cwd
+                params.program, params.args = shared.split_command(inputs.command)
+                params.cwd         = shared.normalize_path(inputs.cwd)
                 params.env         = inputs.env
-                params.envFile     = inputs.env_file
+                params.envFile     = shared.normalize_path(inputs.env_file)
                 params.stdio       = inputs.stdio
                 params.terminal    = inputs.terminal
                 params.stopOnEntry = inputs.stop_on_entry
@@ -91,15 +95,16 @@ return {
             request = "attach",
             inputs = _inputs {
                 pid           = { type = "integer", description = "process id to attach to" },
-                program       = { type = "string", format = "file", description = "executable to read symbols from" },
+                program       = { type = "string", completion = "file", description = "executable to read symbols from" },
                 stop_on_entry = { type = "boolean", description = "break immediately after attaching" },
             },
             build = function(inputs)
-                local pid, err = require("ezdap.shared").resolve_pid(inputs.pid)
+                local shared = require("ezdap.shared")
+                local pid, err = shared.resolve_pid(inputs.pid)
                 if not pid then return nil, err end
                 local params = _common_body(inputs)
                 params.pid         = pid
-                params.program     = inputs.program
+                params.program     = shared.normalize_path(inputs.program)
                 params.stopOnEntry = inputs.stop_on_entry
                 return params
             end,
@@ -108,13 +113,13 @@ return {
             description = "attach to a process by executable, optionally waiting for it to launch",
             request = "attach",
             inputs = _inputs {
-                program       = { type = "string", format = "file", required = true, description = "executable to attach to" },
+                program       = { type = "string", completion = "file", required = true, description = "executable to attach to" },
                 wait_for      = { type = "boolean", description = "wait for the process to launch" },
                 stop_on_entry = { type = "boolean", description = "break immediately after attaching" },
             },
             build = function(inputs)
                 local params = _common_body(inputs)
-                params.program     = inputs.program
+                params.program     = require("ezdap.shared").normalize_path(inputs.program)
                 params.waitFor     = inputs.wait_for
                 params.stopOnEntry = inputs.stop_on_entry
                 return params
@@ -129,8 +134,8 @@ return {
             description = "post-mortem debug from a core file (custom launch)",
             request = "launch",
             inputs = _inputs {
-                program  = { type = "string", format = "file", description = "executable that produced the core (read from the core when unset)" },
-                corefile = { type = "string", format = "file", required = true, description = "core file to load" },
+                program  = { type = "string", completion = "file", description = "executable that produced the core (read from the core when unset)" },
+                corefile = { type = "string", completion = "file", required = true, description = "core file to load" },
             },
             build = function(inputs)
                 local params = _common_body(inputs)
@@ -146,19 +151,21 @@ return {
             description = "attach over a gdb-remote (gdbserver) connection (custom launch)",
             request = "launch",
             inputs = _inputs {
-                program = { type = "string", format = "file", description = "executable for symbols" },
+                program = { type = "string", completion = "file", description = "executable for symbols" },
                 host    = { type = "string", required = true, description = "gdbserver host" },
-                port    = { type = "integer", format = "port", required = true, description = "gdbserver port" },
+                port    = { type = "integer", required = true, description = "gdbserver port" },
             },
             -- `host`/`port` are required for the same reason `core` always writes a
             -- `processCreateCommands`: without one codelldb runs `process launch` and
             -- debugs the program locally instead of the remote.
             build = function(inputs)
+                local port, err = require("ezdap.shared").resolve_port(inputs.port)
+                if err then return nil, err end
                 local params = _common_body(inputs)
                 if inputs.program then
                     params.targetCreateCommands = { "target create " .. _quoted(inputs.program) }
                 end
-                params.processCreateCommands = { ("gdb-remote %s:%d"):format(inputs.host, inputs.port) }
+                params.processCreateCommands = { ("gdb-remote %s:%d"):format(inputs.host, port) }
                 return params
             end,
         },

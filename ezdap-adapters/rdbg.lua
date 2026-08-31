@@ -137,7 +137,7 @@ local _common_inputs = {
 ---Fields the two spawning modes share, on top of the common set.
 ---@type table<string, ezdap.Input>
 local _spawn_inputs = {
-    cwd         = { type = "string", format = "dir", description = "working directory" },
+    cwd         = { type = "string", completion = "dir", description = "working directory" },
     env         = { type = "map", description = "environment variables" },
     use_bundler = { type = "boolean", description = "run under `bundle exec`" },
     rdbg_args   = { type = "list", description = "extra flags for rdbg itself, e.g. --session-name=api" },
@@ -192,7 +192,7 @@ local _modes = {
         description = "debug a Ruby script",
         request = "attach",
         inputs = _inputs(_spawn_inputs, {
-            command = { type = "string", format = "command", required = true, description = "Ruby script to debug, plus its arguments" },
+            command = { type = "string", completion = "command", required = true, description = "Ruby script to debug, plus its arguments" },
         }),
         build = function(inputs)
             local params = _spawn_body(inputs, false)
@@ -206,7 +206,7 @@ local _modes = {
         description = "debug a Ruby command — rspec, rake, ruby itself",
         request = "attach",
         inputs = _inputs(_spawn_inputs, {
-            command = { type = "string", format = "command", required = true, description = "command to debug, plus its arguments" },
+            command = { type = "string", completion = "command", required = true, description = "command to debug, plus its arguments" },
         }),
         build = function(inputs)
             local params = _spawn_body(inputs, true)
@@ -222,9 +222,9 @@ local _modes = {
         request = "attach",
         inputs = _inputs {
             host          = { type = "string", description = "rdbg server host (default 127.0.0.1)" },
-            port          = { type = "integer", format = "port", required = true, description = "rdbg server port" },
+            port          = { type = "integer", required = true, description = "rdbg server port" },
             local_fs      = { type = "boolean", description = "the debuggee shares this filesystem (default true)" },
-            path_mappings = { type = "map", item_format = "dir", description = "source path mappings, remote=local" },
+            path_mappings = { type = "map", completion = "dir", description = "source path mappings, remote=local" },
         },
         build = function(inputs)
             local params = _common_body(inputs)

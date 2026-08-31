@@ -63,9 +63,9 @@ local _tool_of = {
 ---package libraries are debuggable unless turned off.
 ---@type table<string, ezdap.Input>
 local _common_inputs = {
-    cwd                               = { type = "string", format = "dir", description = "working directory" },
+    cwd                               = { type = "string", completion = "dir", description = "working directory" },
     env                               = { type = "map", description = "environment variables for the launched process" },
-    additional_project_paths          = { type = "list", item_format = "dir", description = "extra paths to treat as the user's own code" },
+    additional_project_paths          = { type = "list", completion = "dir", description = "extra paths to treat as the user's own code" },
     debug_sdk_libraries               = { type = "boolean", description = "step into SDK libraries (default true)" },
     debug_external_package_libraries  = { type = "boolean", description = "step into pub package libraries (default true)" },
     show_getters_in_debug_views       = { type = "boolean", description = "list getters alongside fields, evaluated when expanded" },
@@ -80,7 +80,7 @@ local _common_inputs = {
 ---@type table<string, ezdap.Input>
 local _tool_inputs = {
     tool_args                 = { type = "list", description = "arguments for the dart/flutter tool, e.g. -d,chrome or --flavor,dev" },
-    custom_tool               = { type = "string", format = "file", description = "a compatible tool to run instead of dart/flutter" },
+    custom_tool               = { type = "string", completion = "file", description = "a compatible tool to run instead of dart/flutter" },
     custom_tool_replaces_args = { type = "integer", description = "arguments to drop from the front of the tool command line when using custom_tool" },
 }
 
@@ -89,7 +89,7 @@ local _tool_inputs = {
 ---@type table<string, ezdap.Input>
 local _attach_inputs = {
     vm_service_uri       = { type = "string", description = "VM Service uri of the running app" },
-    vm_service_info_file = { type = "string", format = "file", description = "file to read the VM Service uri from" },
+    vm_service_info_file = { type = "string", completion = "file", description = "file to read the VM Service uri from" },
 }
 
 ---A mode's inputs: the always-accepted set plus whichever groups apply.
@@ -106,10 +106,11 @@ end
 ---@param inputs table<string, any>
 ---@return table params
 local function _common_body(inputs)
+    local shared = require("ezdap.shared")
     local params = {}
-    params.cwd                           = inputs.cwd
+    params.cwd                           = shared.normalize_path(inputs.cwd)
     params.env                           = inputs.env
-    params.additionalProjectPaths        = inputs.additional_project_paths
+    params.additionalProjectPaths        = shared.normalize_path(inputs.additional_project_paths)
     params.debugSdkLibraries             = inputs.debug_sdk_libraries
     params.debugExternalPackageLibraries = inputs.debug_external_package_libraries
     params.showGettersInDebugViews       = inputs.show_getters_in_debug_views
@@ -124,7 +125,7 @@ end
 local function _tool_body(inputs)
     local params = _common_body(inputs)
     params.toolArgs               = inputs.tool_args
-    params.customTool             = inputs.custom_tool
+    params.customTool             = require("ezdap.shared").normalize_path(inputs.custom_tool)
     params.customToolReplacesArgs = inputs.custom_tool_replaces_args
     return params
 end
@@ -154,16 +155,18 @@ local _modes = {
         description = "debug a Dart program",
         request = "launch",
         inputs = _inputs(_tool_inputs, {
-            command            = { type = "string", format = "command", required = true, description = "Dart entry point to debug, plus its arguments" },
+            command            = { type = "string", completion = "command", required = true, description = "Dart entry point to debug, plus its arguments" },
             no_debug           = { type = "boolean", description = "run the program without debugging it" },
             vm_additional_args = { type = "list", description = "arguments passed straight to the Dart VM, before the tool's own" },
-            vm_service_port    = { type = "integer", format = "port", description = "fixed port for the debuggee's VM Service" },
-            console            = { type = "string", choices = { "internalConsole", "terminal", "externalTerminal" }, description = "where the debuggee runs; a terminal is what gives it stdin" },
+            vm_service_port    = { type = "integer", description = "fixed port for the debuggee's VM Service" },
+            console            = { type = "string", completion = { "internalConsole", "terminal", "externalTerminal" }, description = "where the debuggee runs; a terminal is what gives it stdin" },
         }),
         build = function(inputs)
+            local port, err = require("ezdap.shared").resolve_port(inputs.vm_service_port)
+            if err then return nil, err end
             local params = _launch_body(inputs)
             params.vmAdditionalArgs = inputs.vm_additional_args
-            params.vmServicePort    = inputs.vm_service_port
+            params.vmServicePort    = port
             params.console          = inputs.console
             return params
         end,
@@ -174,10 +177,10 @@ local _modes = {
         description = "debug a Dart test suite",
         request = "launch",
         inputs = _inputs(_tool_inputs, {
-            command            = { type = "string", format = "command", required = true, description = "test file to debug, plus its arguments" },
+            command            = { type = "string", completion = "command", required = true, description = "test file to debug, plus its arguments" },
             no_debug           = { type = "boolean", description = "run the tests without debugging them" },
             vm_additional_args = { type = "list", description = "arguments passed straight to the Dart VM, before the tool's own" },
-            console            = { type = "string", choices = { "internalConsole", "terminal", "externalTerminal" }, description = "where the tests run; a terminal is what gives them stdin" },
+            console            = { type = "string", completion = { "internalConsole", "terminal", "externalTerminal" }, description = "where the tests run; a terminal is what gives them stdin" },
         }),
         build = function(inputs)
             local params = _launch_body(inputs)
@@ -196,7 +199,7 @@ local _modes = {
         build = function(inputs)
             local params = _common_body(inputs)
             params.vmServiceUri      = inputs.vm_service_uri
-            params.vmServiceInfoFile = inputs.vm_service_info_file
+            params.vmServiceInfoFile = require("ezdap.shared").normalize_path(inputs.vm_service_info_file)
             return params
         end,
     },
@@ -207,7 +210,7 @@ local _modes = {
         description = "debug a Flutter app on a device",
         request = "launch",
         inputs = _inputs(_tool_inputs, {
-            command  = { type = "string", format = "command", required = false, description = "entry point to debug, plus its arguments (default: the project's own)" },
+            command  = { type = "string", completion = "command", required = false, description = "entry point to debug, plus its arguments (default: the project's own)" },
             no_debug = { type = "boolean", description = "run the app without debugging it" },
         }),
         build = function(inputs)
@@ -219,7 +222,7 @@ local _modes = {
         description = "debug a Flutter test suite",
         request = "launch",
         inputs = _inputs(_tool_inputs, {
-            command  = { type = "string", format = "command", required = false, description = "test file to debug, plus its arguments (default: every test)" },
+            command  = { type = "string", completion = "command", required = false, description = "test file to debug, plus its arguments (default: every test)" },
             no_debug = { type = "boolean", description = "run the tests without debugging them" },
         }),
         build = function(inputs)
@@ -233,13 +236,14 @@ local _modes = {
         description = "attach to a running Flutter app",
         request = "attach",
         inputs = _inputs(_tool_inputs, _attach_inputs, {
-            program = { type = "string", format = "file", description = "entry point of the running app, for resolving its sources" },
+            program = { type = "string", completion = "file", description = "entry point of the running app, for resolving its sources" },
         }),
         build = function(inputs)
+            local shared = require("ezdap.shared")
             local params = _tool_body(inputs)
             params.vmServiceUri      = inputs.vm_service_uri
-            params.vmServiceInfoFile = inputs.vm_service_info_file
-            params.program           = inputs.program
+            params.vmServiceInfoFile = shared.normalize_path(inputs.vm_service_info_file)
+            params.program           = shared.normalize_path(inputs.program)
             return params
         end,
     },

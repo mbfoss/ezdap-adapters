@@ -27,9 +27,9 @@ local node_bins = { "node", "/usr/local/bin/node", "/usr/bin/node" }
 ---is described in one place.
 ---@type table<string, ezdap.Input>
 local _common_inputs = {
-    port               = { type = "integer", format = "port", description = "port to listen for Xdebug on (default 9003)" },
+    port               = { type = "integer", description = "port to listen for Xdebug on (default 9003)" },
     hostname           = { type = "string", description = "address to bind while listening (default :: — every interface)" },
-    path_mappings      = { type = "map", item_format = "dir", description = "source path mappings, server=local" },
+    path_mappings      = { type = "map", completion = "dir", description = "source path mappings, server=local" },
     stop_on_entry      = { type = "boolean", description = "break at the first line" },
     ignore             = { type = "list", description = "globs whose errors are ignored (default **/vendor/**/*.php)" },
     ignore_exceptions  = { type = "list", description = "exception class names to ignore" },
@@ -39,7 +39,7 @@ local _common_inputs = {
     xdebug_settings    = { type = "map", description = "DBGP feature overrides, e.g. max_depth=3,max_children=100" },
     stream_stdout      = { type = "integer", description = "the debuggee's stdout: 0 off, 1 copy, 2 redirect" },
     proxy_host         = { type = "string", description = "DBGP proxy host (naming any proxy field enables the proxy)" },
-    proxy_port         = { type = "integer", format = "port", description = "DBGP proxy port (default 9001)" },
+    proxy_port         = { type = "integer", description = "DBGP proxy port (default 9001)" },
     proxy_key          = { type = "string", description = "IDE key the proxy matches requests to this editor by" },
     xdebug_cloud_token = { type = "string", description = "Xdebug Cloud token, used instead of a local port" },
     log                = { type = "boolean", description = "log the DAP/DBGP conversation to the debug console" },
@@ -110,13 +110,13 @@ local _modes = {
         description = "run a PHP script under Xdebug",
         request = "launch",
         inputs = _inputs {
-            command            = { type = "string", format = "command", required = true, description = "script to debug, plus its arguments" },
-            cwd                = { type = "string", format = "dir", description = "working directory" },
+            command            = { type = "string", completion = "command", required = true, description = "script to debug, plus its arguments" },
+            cwd                = { type = "string", completion = "dir", description = "working directory" },
             env                = { type = "map", description = "environment variables" },
-            env_file           = { type = "string", format = "file", description = "file of environment variable definitions" },
+            env_file           = { type = "string", completion = "file", description = "file of environment variable definitions" },
             runtime_executable = { type = "string", description = "php binary to run the script with (default php)" },
             runtime_args       = { type = "list", description = "arguments passed to php, e.g. -dxdebug.mode=debug,-dxdebug.start_with_request=yes" },
-            console            = { type = "string", choices = { "internalConsole", "integratedTerminal", "externalTerminal" }, description = "where the debuggee's stdio goes" },
+            console            = { type = "string", completion = { "internalConsole", "integratedTerminal", "externalTerminal" }, description = "where the debuggee's stdio goes" },
         },
         build = function(inputs)
             local params = _common_body(inputs)

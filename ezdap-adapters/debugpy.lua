@@ -149,10 +149,10 @@ end
 ---Launch-only attributes shared by the `script`, `module` and `code` modes.
 ---@type table<string, ezdap.Input>
 local _launch_inputs = {
-    cwd           = { type = "string", format = "dir", description = "working directory" },
+    cwd           = { type = "string", completion = "dir", description = "working directory" },
     env           = { type = "map", description = "environment variables" },
     python        = { type = "list", description = "python executable and interpreter arguments" },
-    console       = { type = "string", choices = { "internalConsole", "integratedTerminal", "externalTerminal" }, description = "where the debuggee's stdio goes" },
+    console       = { type = "string", completion = { "internalConsole", "integratedTerminal", "externalTerminal" }, description = "where the debuggee's stdio goes" },
     stop_on_entry = { type = "boolean", description = "break at the first line of user code" },
 }
 
@@ -160,7 +160,7 @@ local _launch_inputs = {
 ---@return table params
 local function _launch_body(inputs)
     local params = _common_body(inputs)
-    params.cwd         = inputs.cwd
+    params.cwd         = require("ezdap.shared").normalize_path(inputs.cwd)
     params.env         = inputs.env
     params.python      = inputs.python
     params.console     = inputs.console
@@ -183,7 +183,7 @@ return {
             description = "debug a Python file",
             request = "launch",
             inputs = _inputs(vim.tbl_extend("error", vim.deepcopy(_launch_inputs), {
-                command = { type = "string", format = "command", required = true, description = "command line to debug" },
+                command = { type = "string", completion = "command", required = true, description = "command line to debug" },
             })),
             build = function(inputs)
                 local params = _launch_body(inputs)
@@ -238,11 +238,13 @@ return {
             request = "attach",
             inputs = _inputs {
                 host = { type = "string", required = true, description = "remote debugpy host" },
-                port = { type = "integer", format = "port", required = true, description = "remote debugpy port" },
+                port = { type = "integer", required = true, description = "remote debugpy port" },
             },
             build = function(inputs)
+                local port, err = require("ezdap.shared").resolve_port(inputs.port)
+                if err then return nil, err end
                 local params = _common_body(inputs)
-                params.connect = { host = inputs.host, port = inputs.port }
+                params.connect = { host = inputs.host, port = port }
                 return params
             end,
         },
@@ -253,11 +255,13 @@ return {
             request = "attach",
             inputs = _inputs {
                 host = { type = "string", description = "host to listen on" },
-                port = { type = "integer", format = "port", required = true, description = "port to listen on" },
+                port = { type = "integer", required = true, description = "port to listen on" },
             },
             build = function(inputs)
+                local port, err = require("ezdap.shared").resolve_port(inputs.port)
+                if err then return nil, err end
                 local params = _common_body(inputs)
-                params.listen = { host = inputs.host or "127.0.0.1", port = inputs.port }
+                params.listen = { host = inputs.host or "127.0.0.1", port = port }
                 return params
             end,
         },

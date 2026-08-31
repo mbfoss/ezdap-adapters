@@ -22,9 +22,9 @@ local _source_inputs = {
 ---Fields both Node modes accept on top of the source ones.
 ---@type table<string, ezdap.Input>
 local _node_inputs = {
-    cwd                         = { type = "string", format = "dir", description = "working directory" },
+    cwd                         = { type = "string", completion = "dir", description = "working directory" },
     env                         = { type = "map", description = "environment variables" },
-    env_file                    = { type = "string", format = "file", description = "file of environment variable definitions" },
+    env_file                    = { type = "string", completion = "file", description = "file of environment variable definitions" },
     restart                     = { type = "boolean", description = "try to reconnect when the connection is lost" },
     auto_attach_child_processes = { type = "boolean", description = "attach to child processes automatically" },
 }
@@ -56,11 +56,12 @@ end
 ---@param inputs table<string, any>
 ---@return table params
 local function _node_body(inputs)
+    local shared = require("ezdap.shared")
     local params = _source_body(inputs)
     params.type                     = "pwa-node"
-    params.cwd                      = inputs.cwd
+    params.cwd                      = shared.normalize_path(inputs.cwd)
     params.env                      = inputs.env
-    params.envFile                  = inputs.env_file
+    params.envFile                  = shared.normalize_path(inputs.env_file)
     params.restart                  = inputs.restart
     params.autoAttachChildProcesses = inputs.auto_attach_child_processes
     return params
@@ -75,11 +76,11 @@ local _modes = {
         description = "debug a Node.js/JS/TS file",
         request = "launch",
         inputs = _inputs(_node_inputs, {
-            command            = { type = "string", format = "command", required = true, description = "script to debug, plus its arguments" },
+            command            = { type = "string", completion = "command", required = true, description = "script to debug, plus its arguments" },
             runtime_executable = { type = "string", description = "runtime to run the script with (default node)" },
             runtime_args       = { type = "list", description = "arguments passed to the runtime, before the program" },
             stop_on_entry      = { type = "boolean", description = "break at program entry" },
-            console            = { type = "string", choices = { "internalConsole", "integratedTerminal", "externalTerminal" }, description = "where to run the debuggee" },
+            console            = { type = "string", completion = { "internalConsole", "integratedTerminal", "externalTerminal" }, description = "where to run the debuggee" },
         }),
         build = function(inputs)
             local params = _node_body(inputs)
@@ -117,17 +118,20 @@ local _modes = {
         request = "attach",
         inputs = _inputs(_node_inputs, {
             host                     = { type = "string", description = "remote Node.js host" },
-            port                     = { type = "integer", format = "port", description = "remote Node.js debug port (default 9229)" },
-            local_root               = { type = "string", format = "dir", description = "local directory containing the program" },
+            port                     = { type = "integer", description = "remote Node.js debug port (default 9229)" },
+            local_root               = { type = "string", completion = "dir", description = "local directory containing the program" },
             remote_root              = { type = "string", description = "remote directory containing the program" },
             attach_existing_children = { type = "boolean", description = "also attach to already-spawned child processes" },
             continue_on_attach       = { type = "boolean", description = "resume a program waiting on --inspect-brk" },
         }),
         build = function(inputs)
+            local shared = require("ezdap.shared")
+            local port, err = shared.resolve_port(inputs.port)
+            if err then return nil, err end
             local params = _node_body(inputs)
             params.address                = inputs.host
-            params.port                   = inputs.port
-            params.localRoot              = inputs.local_root
+            params.port                   = port
+            params.localRoot              = shared.normalize_path(inputs.local_root)
             params.remoteRoot             = inputs.remote_root
             params.attachExistingChildren = inputs.attach_existing_children
             params.continueOnAttach       = inputs.continue_on_attach
@@ -141,19 +145,20 @@ local _modes = {
         request = "launch",
         inputs = _inputs {
             url                = { type = "string", required = true, description = "url to open and attach to" },
-            web_root           = { type = "string", format = "dir", description = "absolute path to the webserver root" },
-            path_mapping       = { type = "map", item_format = "dir", description = "url-to-local-folder mappings, from=to" },
-            user_data_dir      = { type = "string", format = "dir", description = "browser user-data directory (default: a throwaway one)" },
+            web_root           = { type = "string", completion = "dir", description = "absolute path to the webserver root" },
+            path_mapping       = { type = "map", completion = "dir", description = "url-to-local-folder mappings, from=to" },
+            user_data_dir      = { type = "string", completion = "dir", description = "browser user-data directory (default: a throwaway one)" },
             runtime_executable = { type = "string", description = "'stable', 'canary', or a path to the browser executable" },
             runtime_args       = { type = "list", description = "arguments passed to the browser" },
         },
         build = function(inputs)
+            local shared = require("ezdap.shared")
             local params = _source_body(inputs)
             params.type              = "pwa-chrome"
             params.url               = inputs.url
-            params.webRoot           = inputs.web_root
-            params.pathMapping       = inputs.path_mapping
-            params.userDataDir       = inputs.user_data_dir
+            params.webRoot           = shared.normalize_path(inputs.web_root)
+            params.pathMapping       = shared.normalize_path(inputs.path_mapping)
+            params.userDataDir       = shared.normalize_path(inputs.user_data_dir)
             params.runtimeExecutable = inputs.runtime_executable
             params.runtimeArgs       = inputs.runtime_args
             return params
