@@ -155,16 +155,18 @@ return {
             description = "attach to a running process by pid",
             request    = "attach",
             inputs = {
-                pid    = { type = "integer", description = "process id to attach to" },
-                program = { type = "string", completion = "file", description = "local binary for symbols" },
+                pid         = { type = "integer", description = "process id to attach to" },
+                program     = { type = "string", completion = "file", description = "local binary for symbols" },
+                ada_charset = { type = "string", description = "Ada source character set" },
             },
             build = function(inputs)
                 local shared = require("ezdap.shared")
                 local pid, err = shared.resolve_pid(inputs.pid)
                 if not pid then return nil, err end
                 return {
-                    pid     = pid,
-                    program = shared.normalize_path(inputs.program),
+                    pid              = pid,
+                    program          = shared.normalize_path(inputs.program),
+                    adaSourceCharset = inputs.ada_charset,
                 }
             end,
         },
@@ -173,13 +175,15 @@ return {
             description = "connect to a gdbserver / remote target",
             request    = "attach",
             inputs = {
-                connection = { type = "string", required = true, description = "remote target, e.g. host:port" },
-                program    = { type = "string", completion = "file", description = "local binary for symbols" },
+                connection  = { type = "string", required = true, description = "remote target, e.g. host:port" },
+                program     = { type = "string", completion = "file", description = "local binary for symbols" },
+                ada_charset = { type = "string", description = "Ada source character set" },
             },
             build = function(inputs)
                 return {
-                    target  = inputs.connection,
-                    program = require("ezdap.shared").normalize_path(inputs.program),
+                    target           = inputs.connection,
+                    program          = require("ezdap.shared").normalize_path(inputs.program),
+                    adaSourceCharset = inputs.ada_charset,
                 }
             end,
         },
@@ -187,14 +191,16 @@ return {
             description = "post-mortem debug from a core file",
             request    = "attach",
             inputs = {
-                corefile = { type = "string", completion = "file", required = true, description = "core file to load" },
-                program  = { type = "string", completion = "file", description = "executable that produced the core" },
+                corefile    = { type = "string", completion = "file", required = true, description = "core file to load" },
+                program     = { type = "string", completion = "file", description = "executable that produced the core" },
+                ada_charset = { type = "string", description = "Ada source character set" },
             },
             build = function(inputs)
                 local shared = require("ezdap.shared")
                 return {
-                    coreFile = shared.normalize_path(inputs.corefile),
-                    program  = shared.normalize_path(inputs.program),
+                    coreFile         = shared.normalize_path(inputs.corefile),
+                    program          = shared.normalize_path(inputs.program),
+                    adaSourceCharset = inputs.ada_charset,
                 }
             end,
         },
