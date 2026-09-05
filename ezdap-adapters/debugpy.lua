@@ -9,7 +9,6 @@ local debugpy_python = nil ---@type string?
 -- variable, skipped when unset; a relative entry resolves against the cwd.
 local debugpy_venv_dirs = {
     "$VIRTUAL_ENV",
-    "$CONDA_PREFIX",
     ".venv",
     "venv",
     vim.fs.joinpath(vim.fn.stdpath("data"), "mason", "packages", "debugpy", "venv"),

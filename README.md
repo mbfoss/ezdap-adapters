@@ -1,14 +1,12 @@
 # ezdap-adapters.nvim
 
 Ready-made DAP adapter definitions for
-[ezdap.nvim](https://github.com/mbfoss/ezdap.nvim): Python, C/C++/Rust, Go, .NET, Java,
-JavaScript, PHP, Ruby, Dart, Bash and Lua. Install it and they are all available at once.
-Nothing runs at startup — each definition file is read only when its adapter is actually
-used, so the ones you never touch cost nothing.
+[ezdap.nvim](https://github.com/mbfoss/ezdap.nvim). 
+Install it and they are all available at once.
 
 A definition is one self-contained Lua file describing one debug adapter: how to find and
-start it, and the launch and attach modes it supports. It is configuration only — the
-adapter itself (`codelldb`, `lldb-dap`, `gdb`, `dlv`, …) is a separate program you install.
+start it, and the launch and attach modes it supports. It is configuration only. 
+The adapter itself (`codelldb`, `lldb-dap`, `gdb`, `dlv`, …) is a separate program you install.
 Modes describe their own inputs, so ezdap.nvim can complete, prompt for and validate them.
 
 Because each file stands alone, you can also just copy one into your own config and skip
@@ -85,7 +83,7 @@ here. One row per definition: what it needs installed, and the modes it offers.
 
 | Adapter | Debugs | Needs | Modes |
 | --- | --- | --- | --- |
-| [`debugpy`](ezdap-adapters/debugpy.lua) | Python | a Python that can import [debugpy](https://github.com/microsoft/debugpy): `$VIRTUAL_ENV`, `$CONDA_PREFIX`, a project `.venv`/`venv`, the mason venv, then `python3`/`python` | `attach`, `code`, `listen`, `module`, `remote`, `script` |
+| [`debugpy`](ezdap-adapters/debugpy.lua) | Python | a Python that can import [debugpy](https://github.com/microsoft/debugpy): `$VIRTUAL_ENV`, a project `.venv`/`venv`, the mason venv, then `python3`/`python` | `attach`, `code`, `listen`, `module`, `remote`, `script` |
 | [`codelldb`](ezdap-adapters/codelldb.lua) | C / C++ / Rust | [`codelldb`](https://github.com/vadimcn/codelldb) on `PATH`; it bundles LLDB | `attach`, `binary`, `core`, `gdb_remote`, `process_name` |
 | [`lldb`](ezdap-adapters/lldb.lua) | C / C++ / Rust | `lldb-dap`, LLVM's own adapter, on `PATH`, in `/usr/local/bin`, `/usr/bin`, or Xcode's toolchains on macOS | `attach`, `binary`, `core`, `gdb_remote`, `process_name` |
 | [`gdb`](ezdap-adapters/gdb.lua) | C / C++ | [GDB](https://sourceware.org/gdb/) 14.1+, its own adapter via `gdb --interpreter=dap`; `core` needs 17.3+ | `attach`, `binary`, `core`, `remote` |
