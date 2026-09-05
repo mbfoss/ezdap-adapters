@@ -110,7 +110,7 @@ local function _common_body(inputs)
     local params = {}
     params.cwd                           = shared.normalize_path(inputs.cwd)
     params.env                           = inputs.env
-    params.additionalProjectPaths        = shared.normalize_path(inputs.additional_project_paths)
+    params.additionalProjectPaths        = shared.normalize_paths(inputs.additional_project_paths)
     params.debugSdkLibraries             = inputs.debug_sdk_libraries
     params.debugExternalPackageLibraries = inputs.debug_external_package_libraries
     params.showGettersInDebugViews       = inputs.show_getters_in_debug_views

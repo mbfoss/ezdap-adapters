@@ -66,7 +66,7 @@ local function _common_body(inputs)
     params.name              = "Debug"
     params.cwd               = shared.normalize_path(inputs.cwd)
     params.env               = inputs.env
-    params.scriptRoots       = shared.normalize_path(inputs.script_roots)
+    params.scriptRoots       = shared.normalize_paths(inputs.script_roots)
     params.scriptFiles       = inputs.script_files
     params.ignorePatterns    = inputs.ignore_patterns
     params.stepUnmappedLines = inputs.step_unmapped_lines

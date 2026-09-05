@@ -76,7 +76,7 @@ return {
                     -- Unset means the default, so only an explicit false turns it off.
                     runInTerminal = inputs.run_in_terminal ~= false,
                     sourcePath    = shared.normalize_path(inputs.source_path),
-                    sourceMap     = shared.normalize_path(inputs.source_map),
+                    sourceMap     = inputs.source_map and vim.tbl_map(shared.normalize_path, inputs.source_map) or nil,
                     initCommands  = inputs.init_commands,
                 }
             end,
@@ -99,7 +99,7 @@ return {
                     type         = "lldb-dap",
                     pid          = pid,
                     sourcePath   = shared.normalize_path(inputs.source_path),
-                    sourceMap    = shared.normalize_path(inputs.source_map),
+                    sourceMap    = inputs.source_map and vim.tbl_map(shared.normalize_path, inputs.source_map) or nil,
                     initCommands = inputs.init_commands,
                 }
             end,
@@ -122,7 +122,7 @@ return {
                     program      = shared.normalize_path(inputs.program),
                     waitFor      = inputs.wait_for,
                     sourcePath   = shared.normalize_path(inputs.source_path),
-                    sourceMap    = shared.normalize_path(inputs.source_map),
+                    sourceMap    = inputs.source_map and vim.tbl_map(shared.normalize_path, inputs.source_map) or nil,
                     initCommands = inputs.init_commands,
                 }
             end,
@@ -144,7 +144,7 @@ return {
                     program    = shared.normalize_path(inputs.program),
                     coreFile   = shared.normalize_path(inputs.corefile),
                     sourcePath = shared.normalize_path(inputs.source_path),
-                    sourceMap  = shared.normalize_path(inputs.source_map),
+                    sourceMap  = inputs.source_map and vim.tbl_map(shared.normalize_path, inputs.source_map) or nil,
                 }
             end,
         },
@@ -167,7 +167,7 @@ return {
                     ["gdb-remote-host"] = inputs.host,
                     ["gdb-remote-port"] = port,
                     sourcePath          = shared.normalize_path(inputs.source_path),
-                    sourceMap           = shared.normalize_path(inputs.source_map),
+                    sourceMap           = inputs.source_map and vim.tbl_map(shared.normalize_path, inputs.source_map) or nil,
                 }
             end,
         },

@@ -164,7 +164,6 @@ end
 
 ---The body and spawn description shared by `script`/`command`,
 ---which differ only in whether rdbg is put in command mode.
----@param params  table
 ---@param inputs  table<string, any>
 ---@param command_mode boolean
 local function _spawn_body(inputs, command_mode)
@@ -232,7 +231,7 @@ local _modes = {
             local port, err = shared.resolve_port(inputs.port)
             if err then return nil, err end
             local params = _common_body(inputs)
-            local path_mappings = shared.normalize_path(inputs.path_mappings)
+            local path_mappings = inputs.path_mappings and vim.tbl_map(shared.normalize_path, inputs.path_mappings)
             if path_mappings then
                 -- The gem takes one string of "remote:local" pairs and matches by
                 -- prefix, first hit winning, so the longest prefix goes first —

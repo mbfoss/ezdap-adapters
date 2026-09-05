@@ -45,7 +45,7 @@ local function _common_body(inputs)
     local params = {}
     params.name                 = "codelldb"
     params.type                 = "lldb"
-    params.sourceMap            = shared.normalize_path(inputs.source_map)
+    params.sourceMap            = inputs.source_map and vim.tbl_map(shared.normalize_path, inputs.source_map) or nil
     params.relativePathBase     = shared.normalize_path(inputs.relative_path_base)
     params.sourceLanguages      = inputs.source_languages
     params.expressions          = inputs.expressions

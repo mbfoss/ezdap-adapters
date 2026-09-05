@@ -33,7 +33,7 @@ return {
                     hostName    = inputs.jdwp_host or "127.0.0.1",
                     port        = jdwp_port,
                     projectName = inputs.project_name,
-                    sourcePaths = shared.normalize_path(inputs.source_paths),
+                    sourcePaths = shared.normalize_paths(inputs.source_paths),
                     timeout     = inputs.timeout or 30000,
                 }, {
                     host = inputs.server_host or "127.0.0.1",

@@ -65,7 +65,7 @@ local function _common_body(inputs)
     local params = {}
     params.port             = port
     params.hostname         = inputs.hostname
-    params.pathMappings     = shared.normalize_path(inputs.path_mappings)
+    params.pathMappings     = inputs.path_mappings and vim.tbl_map(shared.normalize_path, inputs.path_mappings) or nil
     params.stopOnEntry      = inputs.stop_on_entry
     params.ignore           = inputs.ignore
     params.ignoreExceptions = inputs.ignore_exceptions
